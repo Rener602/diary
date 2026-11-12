@@ -92,6 +92,11 @@
   .student-info b { color: #667eea; font-size: 15px; display: block; margin-bottom: 3px;}
   .student-info .details { font-size: 12px; color: var(--text-muted); }
   .student-info .pass-text { color: #e74c3c; font-weight: 600; margin-left: 5px;}
+  .badge-admin { background: #f39c12; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
+  
+  .action-btns { display: flex; gap: 5px; }
+  .action-btns button { background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px; }
+  .empty-state { text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px; }
 </style>
 </head>
 <body>
@@ -123,15 +128,15 @@
     <div id="tab-grades" class="tab-content active">
       <div class="card">
         <h2>📊 Мои оценки <span id="studentClassBadge" class="avg-badge"></span></h2>
-        <div id="gradesList"></div>
+        <div id="gradesList"><div class="empty-state">Загрузка...</div></div>
       </div>
     </div>
 
     <!-- РАСПИСАНИЕ -->
     <div id="tab-schedule" class="tab-content">
       <div class="card">
-        <h2>🗓️ Расписание</h2>
-        <div id="scheduleList"></div>
+        <h2>🗓️ Расписание (Общее)</h2>
+        <div id="scheduleList"><div class="empty-state">Загрузка...</div></div>
         
         <div id="scheduleEditor" style="display:none; margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">
           <h3 style="font-size:14px; margin-bottom:10px; color:#667eea;">Добавить урок</h3>
@@ -141,7 +146,7 @@
           </select>
           <input type="text" id="editSubject" placeholder="Название урока">
           <input type="text" id="editRoom" placeholder="Кабинет">
-          <button class="btn" onclick="saveLesson()">Добавить</button>
+          <button class="btn" onclick="saveLesson()">Добавить в облако</button>
         </div>
       </div>
     </div>
@@ -169,8 +174,8 @@
           </select>
         </div>
 
-        <!-- Выдача оценок -->
-        <div style="border-left: 4px solid #f39c12; padding-left: 12px; margin-bottom: 20px;">
+        <!-- Выдача оценок (Только для Админов) -->
+        <div id="teacherGradeBox" style="display:none; border-left: 4px solid #f39c12; padding-left: 12px; margin-bottom: 20px;">
           <h3 style="font-size:13px; color:#f39c12; margin-bottom:10px;">Выдать оценку</h3>
           <select id="adminStudent"></select>
           <select id="adminSubject"></select>
@@ -181,9 +186,9 @@
           <button class="btn" onclick="teacherSetGrade()">Поставить оценку</button>
         </div>
 
-        <!-- УПРАВЛЕНИЕ УЧЕНИКАМИ (Только для Хозяина) -->
+        <!-- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (Только для Админов) -->
         <div id="manageStudentsBox" style="display:none; border-top: 1px solid var(--border); padding-top: 15px;">
-          <h3 style="font-size:14px; color:#667eea; margin-bottom:10px;">Все пользователи (База)</h3>
+          <h3 style="font-size:14px; color:#667eea; margin-bottom:10px;">База пользователей</h3>
           
           <div id="studentsList" style="margin-bottom: 20px;"></div>
 
@@ -205,7 +210,7 @@
               <option value="10А">10А</option><option value="10Б">10Б</option>
               <option value="11А">11А</option><option value="11Б">11Б</option>
             </select>
-            <button class="btn btn-green" onclick="addNewStudent()">Зарегистрировать</button>
+            <button class="btn btn-green" onclick="addNewStudent()">Зарегистрировать в облаке</button>
           </div>
         </div>
       </div>
@@ -220,21 +225,21 @@
 </div>
 
 <script>
-const DEFAULT_USERS = {
-  "admin":  { pass: "admin2024",  name: "Хозяин", role: "admin",   class: "9А" },
-  "friend": { pass: "friend2024", name: "Друг",   role: "student", class: "9А" }
-};
+// Вставлена твоя ссылка Firebase
+const FIREBASE_URL = "https://diary-491d6-default-rtdb.firebaseio.com"; 
+
+const BASE_SUBJECTS = ["Математика", "Русский язык", "Литература", "История", "Физика", "Химия", "Английский", "Информатика", "Биология", "Физкультура"];
+const DEFAULT_SCHEDULE = [
+  { day: "Понедельник", lessons: [] }, { day: "Вторник", lessons: [] },
+  { day: "Среда", lessons: [] }, { day: "Четверг", lessons: [] }, { day: "Пятница", lessons: [] }
+];
 
 let USERS = {};
-const STORAGE_PREFIX = "diary_v7_";
+let GLOBAL_SCHEDULE = DEFAULT_SCHEDULE;
+let currentUser = null;
+let showPasswords = false;
 
-function loadUsers() {
-  const saved = localStorage.getItem(STORAGE_PREFIX + "users_db");
-  if (saved) { USERS = JSON.parse(saved); } else { USERS = DEFAULT_USERS; saveUsers(); }
-}
-function saveUsers() { localStorage.setItem(STORAGE_PREFIX + "users_db", JSON.stringify(USERS)); }
-
-// --- ТЕМА ---
+// === ТЕМА ===
 function initTheme() {
   const savedTheme = localStorage.getItem('diary_theme');
   const themeBtn = document.getElementById('themeBtn');
@@ -248,66 +253,93 @@ function toggleTheme() {
   localStorage.setItem('diary_theme', isDark ? 'dark' : 'light');
 }
 
-// --- ДАННЫЕ ---
-const BASE_SUBJECTS = ["Математика", "Русский язык", "Литература", "История", "Физика", "Химия", "Английский", "Информатика", "Биология", "Физкультура"];
-const DEFAULT_SCHEDULE = [
-  { day: "Понедельник", lessons: [] }, { day: "Вторник", lessons: [] },
-  { day: "Среда", lessons: [] }, { day: "Четверг", lessons: [] }, { day: "Пятница", lessons: [] }
-];
-
-let currentUser = null;
-
-function loadGlobal(key, fallback) {
-  try { const raw = localStorage.getItem(STORAGE_PREFIX + "global_" + key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
-}
-function saveGlobal(key, val) { localStorage.setItem(STORAGE_PREFIX + "global_" + key, JSON.stringify(val)); }
-function loadUserData(user, key, fallback) {
-  try { const raw = localStorage.getItem(STORAGE_PREFIX + user + "_" + key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
-}
-function saveUserData(user, key, val) { localStorage.setItem(STORAGE_PREFIX + user + "_" + key, JSON.stringify(val)); }
-
-function initData() {
-  if (!localStorage.getItem(STORAGE_PREFIX + "global_schedule")) saveGlobal("schedule", DEFAULT_SCHEDULE);
-  Object.keys(USERS).forEach(u => {
-    if (!localStorage.getItem(STORAGE_PREFIX + u + "_grades")) {
-      const g = {}; BASE_SUBJECTS.forEach(s => g[s] = [null,null,null,null,null]);
-      saveUserData(u, "grades", g);
-    }
-  });
+// === ОБЛАКО (FIREBASE REST API) ===
+async function cloudGet(path) {
+  try {
+    const res = await fetch(FIREBASE_URL + path + ".json");
+    return await res.json();
+  } catch(e) { console.error("Ошибка чтения:", e); return null; }
 }
 
-// --- ВХОД ---
-function login() {
+async function cloudSet(path, data) {
+  try {
+    await fetch(FIREBASE_URL + path + ".json", {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  } catch(e) { console.error("Ошибка записи:", e); }
+}
+
+// === ИНИЦИАЛИЗАЦИЯ ===
+async function loadDataFromCloud() {
+  let users = await cloudGet("/users");
+  if (!users) {
+    users = {
+      "admin":  { pass: "admin2024",  name: "Хозяин", role: "admin",   class: "9А" },
+      "friend": { pass: "friend2024", name: "Друг",   role: "student", class: "9А" }
+    };
+    await cloudSet("/users", users);
+  }
+  USERS = users;
+
+  let sch = await cloudGet("/schedule");
+  if (!sch) {
+    await cloudSet("/schedule", DEFAULT_SCHEDULE);
+    GLOBAL_SCHEDULE = DEFAULT_SCHEDULE;
+  } else {
+    GLOBAL_SCHEDULE = sch;
+  }
+}
+
+async function login() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
+  
+  document.getElementById('errorMsg').textContent = 'Загрузка...';
+  await loadDataFromCloud();
+
   if (USERS[u] && USERS[u].pass === p) {
     currentUser = u;
-    sessionStorage.setItem('diary_user_v7', u);
+    sessionStorage.setItem('diary_user_v8', u);
     document.getElementById('errorMsg').textContent = '';
     startApp();
   } else {
     document.getElementById('errorMsg').textContent = 'Неверный логин или пароль';
   }
 }
-function logout() { sessionStorage.removeItem('diary_user_v7'); location.reload(); }
+function logout() { sessionStorage.removeItem('diary_user_v8'); location.reload(); }
 
-function startApp() {
+async function startApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  const info = USERS[currentUser];
-  document.getElementById('userName').textContent = info.name;
-  document.getElementById('avatar').textContent = info.name[0].toUpperCase();
   
-  if (currentUser === 'admin') {
-    document.getElementById('scheduleEditor').style.display = 'block';
-    document.getElementById('manageStudentsBox').style.display = 'block';
-  }
-
+  updateUIForRole();
   initData();
   renderAll();
 }
 
-// --- НАВИГАЦИЯ ---
+function updateUIForRole() {
+  const info = USERS[currentUser];
+  document.getElementById('userName').textContent = info.name;
+  document.getElementById('avatar').textContent = info.name[0].toUpperCase();
+  
+  const isAdmin = info.role === 'admin';
+  document.getElementById('scheduleEditor').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('teacherGradeBox').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('manageStudentsBox').style.display = isAdmin ? 'block' : 'none';
+}
+
+function initData() {
+  Object.keys(USERS).forEach(async (u) => {
+    let grades = await cloudGet("/grades/" + u);
+    if (!grades) {
+      const g = {}; BASE_SUBJECTS.forEach(s => g[s] = [null,null,null,null,null]);
+      await cloudSet("/grades/" + u, g);
+    }
+  });
+}
+
+// === НАВИГАЦИЯ ===
 function showTab(name, btn) {
   document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -316,14 +348,16 @@ function showTab(name, btn) {
   window.scrollTo(0,0);
   if (name === 'admin') renderAdmin();
   if (name === 'schedule') renderSchedule();
+  if (name === 'grades') renderGrades();
 }
 
 function renderAll() { renderGrades(); renderSchedule(); renderAdmin(); }
 
-// --- ОЦЕНКИ ---
-function renderGrades() {
+// === ОЦЕНКИ ===
+async function renderGrades() {
   document.getElementById('studentClassBadge').textContent = USERS[currentUser].class || "—";
-  const grades = loadUserData(currentUser, "grades", {});
+  const grades = await cloudGet("/grades/" + currentUser) || {};
+  
   document.getElementById('gradesList').innerHTML = BASE_SUBJECTS.map(subj => {
     const arr = grades[subj] || [null,null,null,null,null];
     const valid = arr.filter(x => x);
@@ -333,54 +367,60 @@ function renderGrades() {
   }).join('');
 }
 
-// --- РАСПИСАНИЕ ---
-function renderSchedule() {
-  const sch = loadGlobal("schedule", DEFAULT_SCHEDULE);
-  document.getElementById('scheduleList').innerHTML = sch.map((d, i) => `
+// === РАСПИСАНИЕ ===
+async function renderSchedule() {
+  GLOBAL_SCHEDULE = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
+  const isAdmin = USERS[currentUser].role === 'admin';
+  
+  document.getElementById('scheduleList').innerHTML = GLOBAL_SCHEDULE.map((d, i) => `
     <div class="day-block">
-      <div class="day-name">📅 ${d.day} ${currentUser === 'admin' ? `<button onclick="clearDay(${i})" style="border:none; background:none; color:#e74c3c; font-size:12px;">Очистить</button>` : ''}</div>
+      <div class="day-name">📅 ${d.day} ${isAdmin ? `<button onclick="clearDay(${i})" style="border:none; background:none; color:#e74c3c; font-size:12px;">Очистить</button>` : ''}</div>
       ${d.lessons.length ? d.lessons.map((l, j) => `
         <div class="lesson">
           <span class="num">${l.num}</span>
           <div class="info"><div class="name">${l.name}</div></div>
           <span class="room">${l.room}</span>
-          ${currentUser === 'admin' ? `<button onclick="deleteLesson(${i}, ${j})" style="background:none; border:none; color:#e74c3c; margin-left:8px;">✕</button>` : ''}
+          ${isAdmin ? `<button onclick="deleteLesson(${i}, ${j})" style="background:none; border:none; color:#e74c3c; margin-left:8px;">✕</button>` : ''}
         </div>
       `).join('') : '<div style="font-size:12px;color:var(--text-muted);padding:10px;">Нет уроков</div>'}
     </div>
   `).join('');
 }
 
-function saveLesson() {
+async function saveLesson() {
   const dayIdx = parseInt(document.getElementById('editDay').value);
   const subj = document.getElementById('editSubject').value.trim();
   const room = document.getElementById('editRoom').value.trim();
   if (!subj) return alert('Введите название урока');
-  let sch = loadGlobal("schedule", DEFAULT_SCHEDULE);
+
+  let sch = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
   sch[dayIdx].lessons.push({ num: sch[dayIdx].lessons.length + 1, name: subj, room: room || "—" });
-  saveGlobal("schedule", sch);
+  
+  await cloudSet("/schedule", sch);
   document.getElementById('editSubject').value = ''; document.getElementById('editRoom').value = '';
   renderSchedule();
 }
-function deleteLesson(dayIdx, lessonIdx) {
-  let sch = loadGlobal("schedule", DEFAULT_SCHEDULE);
+
+async function deleteLesson(dayIdx, lessonIdx) {
+  let sch = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
   sch[dayIdx].lessons.splice(lessonIdx, 1);
   sch[dayIdx].lessons.forEach((l, i) => l.num = i + 1);
-  saveGlobal("schedule", sch); renderSchedule();
-}
-function clearDay(dayIdx) {
-  if (!confirm('Удалить все уроки в этот день?')) return;
-  let sch = loadGlobal("schedule", DEFAULT_SCHEDULE);
-  sch[dayIdx].lessons = []; saveGlobal("schedule", sch); renderSchedule();
+  await cloudSet("/schedule", sch);
+  renderSchedule();
 }
 
-// --- УЧИТЕЛЬСКАЯ ---
-let showPasswords = false; // Флаг для показа паролей
+async function clearDay(dayIdx) {
+  if (!confirm('Удалить все уроки в этот день для ВСЕХ?')) return;
+  let sch = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
+  sch[dayIdx].lessons = [];
+  await cloudSet("/schedule", sch);
+  renderSchedule();
+}
 
+// === УЧИТЕЛЬСКАЯ ===
 function renderAdmin() {
   document.getElementById('myClassSelect').value = USERS[currentUser].class || "9А";
   
-  // Обновляем список учеников для оценок
   const stSelect = document.getElementById('adminStudent');
   stSelect.innerHTML = Object.keys(USERS).map(u => `<option value="${u}">${USERS[u].name} (@${u})</option>`).join('');
 
@@ -389,11 +429,8 @@ function renderAdmin() {
     BASE_SUBJECTS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; subSelect.appendChild(o); });
   }
 
-  // Отрисовка базы пользователей (видна только Хозяину)
-  if (currentUser === 'admin') {
+  if (USERS[currentUser].role === 'admin') {
     const listEl = document.getElementById('studentsList');
-    
-    // Кнопка показать/скрыть пароли
     let html = `<div style="text-align:right; margin-bottom:10px;">
       <button onclick="togglePasswords()" style="background:none; border:none; color:#667eea; font-size:12px; font-weight:600; cursor:pointer;">
         ${showPasswords ? 'Скрыть пароли' : 'Показать пароли'}
@@ -403,19 +440,25 @@ function renderAdmin() {
     html += Object.keys(USERS).map(u => {
       const user = USERS[u];
       const passDisplay = showPasswords ? `<span class="pass-text">🔑 ${user.pass}</span>` : `<span style="color:var(--text-muted)">🔑 ••••••••</span>`;
+      const isTargetAdmin = user.role === 'admin';
+      const roleBadge = isTargetAdmin ? `<span class="badge-admin">ADMIN</span>` : '';
       
-      // Кнопка удаления (нельзя удалить себя)
-      const delBtn = u === 'admin' ? '' : `<button onclick="deleteStudent('${u}')" style="background:none;border:none;font-size:20px;cursor:pointer;">🗑️</button>`;
+      const delBtn = u === 'admin' ? '' : `<button onclick="deleteStudent('${u}')" title="Удалить">🗑️</button>`;
+      
+      const adminBtn = u === 'admin' ? '' : `
+        <button onclick="toggleAdmin('${u}')" title="${isTargetAdmin ? 'Забрать админку' : 'Сделать админом'}" style="color: ${isTargetAdmin ? '#f39c12' : '#27ae60'};">
+          ${isTargetAdmin ? '👑' : '⬆️'}
+        </button>`;
 
       return `
         <div class="student-row">
           <div class="student-info">
-            <b>${user.name}</b>
+            <b>${user.name} ${roleBadge}</b>
             <div class="details">
               Логин: <b>${u}</b> | Класс: ${user.class || '—'} | ${passDisplay}
             </div>
           </div>
-          ${delBtn}
+          <div class="action-btns">${adminBtn} ${delBtn}</div>
         </div>
       `;
     }).join('');
@@ -423,45 +466,49 @@ function renderAdmin() {
   }
 }
 
-function togglePasswords() {
-  showPasswords = !showPasswords;
-  renderAdmin();
-}
+function togglePasswords() { showPasswords = !showPasswords; renderAdmin(); }
 
-function changeMyClass(newClass) {
+async function changeMyClass(newClass) {
   USERS[currentUser].class = newClass;
-  saveUsers(); renderGrades();
+  await cloudSet("/users/" + currentUser, USERS[currentUser]);
+  renderGrades();
 }
 
-function teacherSetGrade() {
+async function teacherSetGrade() {
   const student = document.getElementById('adminStudent').value;
   const subj = document.getElementById('adminSubject').value;
   const grade = parseInt(document.getElementById('adminGrade').value);
   const dayIdx = parseInt(document.getElementById('adminDay').value);
 
-  let grades = loadUserData(student, "grades", {});
+  let grades = await cloudGet("/grades/" + student) || {};
   if (!grades[subj]) grades[subj] = [null,null,null,null,null];
   grades[subj][dayIdx] = grade;
-  saveUserData(student, "grades", grades);
+  await cloudSet("/grades/" + student, grades);
 
   alert(`Оценка ${grade} выставлена: ${USERS[student].name}`);
   if (student === currentUser) renderGrades();
 }
 
-// --- УПРАВЛЕНИЕ БАЗОЙ ---
-function addNewStudent() {
+// === УПРАВЛЕНИЕ БАЗОЙ ===
+async function addNewStudent() {
   const login = document.getElementById('newStLogin').value.trim().toLowerCase();
   const name = document.getElementById('newStName').value.trim();
   const pass = document.getElementById('newStPass').value.trim();
   const cls = document.getElementById('newStClass').value;
 
   if (!login || !name || !pass) return alert('Заполните все поля!');
-  if (USERS[login]) return alert('Такой логин уже существует!');
-
-  USERS[login] = { pass: pass, name: name, role: "student", class: cls };
-  saveUsers();
-  initData();
   
+  let users = await cloudGet("/users") || {};
+  if (users[login]) return alert('Такой логин уже существует!');
+
+  users[login] = { pass: pass, name: name, role: "student", class: cls };
+  await cloudSet("/users", users);
+  USERS = users;
+  
+  // Создаем пустые оценки
+  const g = {}; BASE_SUBJECTS.forEach(s => g[s] = [null,null,null,null,null]);
+  await cloudSet("/grades/" + login, g);
+
   document.getElementById('newStLogin').value = '';
   document.getElementById('newStName').value = '';
   document.getElementById('newStPass').value = '';
@@ -470,18 +517,39 @@ function addNewStudent() {
   alert('Ученик ' + name + ' создан!\nЛогин: ' + login + '\nПароль: ' + pass);
 }
 
-function deleteStudent(login) {
+async function deleteStudent(login) {
   if (!confirm('Удалить пользователя ' + USERS[login].name + '?')) return;
-  delete USERS[login];
-  saveUsers();
+  let users = await cloudGet("/users") || {};
+  delete users[login];
+  await cloudSet("/users", users);
+  await cloudSet("/grades/" + login, null); // Удаляем его оценки
+  USERS = users;
+  renderAdmin();
+}
+
+async function toggleAdmin(login) {
+  let users = await cloudGet("/users") || {};
+  if (users[login].role === 'admin') {
+    users[login].role = 'student';
+    alert(users[login].name + ' больше не админ.');
+  } else {
+    users[login].role = 'admin';
+    alert(users[login].name + ' теперь админ!');
+  }
+  await cloudSet("/users", users);
+  USERS = users;
   renderAdmin();
 }
 
 window.addEventListener('load', () => {
   initTheme();
-  loadUsers();
-  const saved = sessionStorage.getItem('diary_user_v7');
-  if (saved && USERS[saved]) { currentUser = saved; startApp(); }
+  const saved = sessionStorage.getItem('diary_user_v8');
+  if (saved) { 
+    // При перезагрузке тоже нужно подтянуть базу
+    loadDataFromCloud().then(() => {
+      if (USERS[saved]) { currentUser = saved; startApp(); }
+    });
+  }
   document.getElementById('loginPass').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
 });
 </script>
