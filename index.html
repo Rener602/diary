@@ -115,14 +115,14 @@
     <div id="tab-grades" class="tab-content active">
       <div class="card">
         <h2>📊 Мои оценки <span id="studentClassBadge" class="avg-badge"></span></h2>
-        <div id="gradesList"><div class="empty-state">Загрузка...</div></div>
+        <div id="gradesList"></div>
       </div>
     </div>
 
     <div id="tab-schedule" class="tab-content">
       <div class="card">
-        <h2>🗓️ Расписание (Общее)</h2>
-        <div id="scheduleList"><div class="empty-state">Загрузка...</div></div>
+        <h2>🗓️ Расписание</h2>
+        <div id="scheduleList"></div>
         
         <div id="scheduleEditor" style="display:none; margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">
           <h3 style="font-size:14px; margin-bottom:10px; color:#667eea;">Добавить урок</h3>
@@ -204,7 +204,6 @@
 </div>
 
 <script>
-const FIREBASE_URL = "https://diary-491d6-default-rtdb.firebaseio.com"; 
 const BASE_SUBJECTS = ["Математика", "Русский язык", "Литература", "История", "Физика", "Химия", "Английский", "Информатика", "Биология", "Физкультура"];
 const DEFAULT_SCHEDULE = [
   { day: "Понедельник", lessons: [] }, { day: "Вторник", lessons: [] },
@@ -219,6 +218,17 @@ let GLOBAL_SCHEDULE = DEFAULT_SCHEDULE;
 let currentUser = null;
 let showPasswords = false;
 
+// ЗАГРУЗКА ИЗ ПАМЯТИ
+function loadLocalData() {
+  const savedUsers = localStorage.getItem('diary_local_users');
+  if (savedUsers) USERS = JSON.parse(savedUsers);
+
+  const savedSch = localStorage.getItem('diary_local_schedule');
+  if (savedSch) GLOBAL_SCHEDULE = JSON.parse(savedSch);
+}
+function saveLocalUsers() { localStorage.setItem('diary_local_users', JSON.stringify(USERS)); }
+function saveLocalSchedule() { localStorage.setItem('diary_local_schedule', JSON.stringify(GLOBAL_SCHEDULE)); }
+
 function initTheme() {
   const savedTheme = localStorage.getItem('diary_theme');
   const themeBtn = document.getElementById('themeBtn');
@@ -232,43 +242,22 @@ function toggleTheme() {
   localStorage.setItem('diary_theme', isDark ? 'dark' : 'light');
 }
 
-// ХИТРАЯ ФУНКЦИЯ: пытается скачать, если не получается за 2 сек - возвращает пустоту
-async function safeFetch(url, options = {}) {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(timeout);
-    return await res.json();
-  } catch (e) {
-    return null;
-  }
-}
-
-async function login() {
+function login() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
-  document.getElementById('errorMsg').textContent = 'Проверка...';
-
-  // Пытаемся скачать базу (максимум 2 сек)
-  let cloudUsers = await safeFetch(FIREBASE_URL + "/users.json");
-  if (cloudUsers) USERS = cloudUsers; // Если база есть - берем оттуда
-  
-  let cloudSch = await safeFetch(FIREBASE_URL + "/schedule.json");
-  if (cloudSch) GLOBAL_SCHEDULE = cloudSch;
 
   if (USERS[u] && USERS[u].pass === p) {
     currentUser = u;
-    sessionStorage.setItem('diary_user_v10', u);
+    sessionStorage.setItem('diary_user_local', u);
     document.getElementById('errorMsg').textContent = '';
     startApp();
   } else {
     document.getElementById('errorMsg').textContent = 'Неверный логин или пароль';
   }
 }
-function logout() { sessionStorage.removeItem('diary_user_v10'); location.reload(); }
+function logout() { sessionStorage.removeItem('diary_user_local'); location.reload(); }
 
-async function startApp() {
+function startApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   updateUIForRole();
@@ -277,7 +266,6 @@ async function startApp() {
 
 function updateUIForRole() {
   const info = USERS[currentUser];
-  if (!info) return;
   document.getElementById('userName').textContent = info.name;
   document.getElementById('avatar').textContent = info.name[0].toUpperCase();
   
@@ -299,19 +287,15 @@ function showTab(name, btn) {
 }
 function renderAll() { renderGrades(); renderSchedule(); renderAdmin(); }
 
-// ОЦЕНКИ (Берем из памяти, а в фоне пытаемся обновить)
-async function renderGrades() {
+// ОЦЕНКИ
+function renderGrades() {
   if (!USERS[currentUser]) return;
   document.getElementById('studentClassBadge').textContent = USERS[currentUser].class || "—";
   
-  let cloudGrades = await safeFetch(FIREBASE_URL + "/grades/" + currentUser + ".json");
-  if (!cloudGrades) {
-    cloudGrades = {};
-    BASE_SUBJECTS.forEach(s => cloudGrades[s] = [null,null,null,null,null]);
-  }
+  let grades = JSON.parse(localStorage.getItem('diary_grades_' + currentUser)) || {};
   
   document.getElementById('gradesList').innerHTML = BASE_SUBJECTS.map(subj => {
-    const arr = cloudGrades[subj] || [null,null,null,null,null];
+    const arr = grades[subj] || [null,null,null,null,null];
     const valid = arr.filter(x => x);
     const avg = valid.length ? (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1) : '—';
     const pills = arr.map(g => g ? `<span class="grade-pill g${g}">${g}</span>` : `<span class="grade-pill empty">·</span>`).join('');
@@ -320,10 +304,7 @@ async function renderGrades() {
 }
 
 // РАСПИСАНИЕ
-async function renderSchedule() {
-  let cloudSch = await safeFetch(FIREBASE_URL + "/schedule.json");
-  if (cloudSch) GLOBAL_SCHEDULE = cloudSch;
-  
+function renderSchedule() {
   const isAdmin = USERS[currentUser] && USERS[currentUser].role === 'admin';
   
   document.getElementById('scheduleList').innerHTML = GLOBAL_SCHEDULE.map((d, i) => `
@@ -341,32 +322,30 @@ async function renderSchedule() {
   `).join('');
 }
 
-async function saveLesson() {
+function saveLesson() {
   const dayIdx = parseInt(document.getElementById('editDay').value);
   const subj = document.getElementById('editSubject').value.trim();
   const room = document.getElementById('editRoom').value.trim();
   if (!subj) return alert('Введите название урока');
 
   GLOBAL_SCHEDULE[dayIdx].lessons.push({ num: GLOBAL_SCHEDULE[dayIdx].lessons.length + 1, name: subj, room: room || "—" });
-  
-  // Отправляем в облако
-  fetch(FIREBASE_URL + "/schedule.json", { method: 'PUT', body: JSON.stringify(GLOBAL_SCHEDULE) });
+  saveLocalSchedule();
   
   document.getElementById('editSubject').value = ''; document.getElementById('editRoom').value = '';
   renderSchedule();
 }
 
-async function deleteLesson(dayIdx, lessonIdx) {
+function deleteLesson(dayIdx, lessonIdx) {
   GLOBAL_SCHEDULE[dayIdx].lessons.splice(lessonIdx, 1);
   GLOBAL_SCHEDULE[dayIdx].lessons.forEach((l, i) => l.num = i + 1);
-  fetch(FIREBASE_URL + "/schedule.json", { method: 'PUT', body: JSON.stringify(GLOBAL_SCHEDULE) });
+  saveLocalSchedule();
   renderSchedule();
 }
 
-async function clearDay(dayIdx) {
-  if (!confirm('Удалить все уроки в этот день для ВСЕХ?')) return;
+function clearDay(dayIdx) {
+  if (!confirm('Удалить все уроки в этот день?')) return;
   GLOBAL_SCHEDULE[dayIdx].lessons = [];
-  fetch(FIREBASE_URL + "/schedule.json", { method: 'PUT', body: JSON.stringify(GLOBAL_SCHEDULE) });
+  saveLocalSchedule();
   renderSchedule();
 }
 
@@ -415,29 +394,28 @@ function renderAdmin() {
 
 function togglePasswords() { showPasswords = !showPasswords; renderAdmin(); }
 
-async function changeMyClass(newClass) {
+function changeMyClass(newClass) {
   USERS[currentUser].class = newClass;
-  fetch(FIREBASE_URL + "/users/" + currentUser + ".json", { method: 'PUT', body: JSON.stringify(USERS[currentUser]) });
+  saveLocalUsers();
   renderGrades();
 }
 
-async function teacherSetGrade() {
+function teacherSetGrade() {
   const student = document.getElementById('adminStudent').value;
   const subj = document.getElementById('adminSubject').value;
   const grade = parseInt(document.getElementById('adminGrade').value);
   const dayIdx = parseInt(document.getElementById('adminDay').value);
 
-  let grades = await safeFetch(FIREBASE_URL + "/grades/" + student + ".json") || {};
+  let grades = JSON.parse(localStorage.getItem('diary_grades_' + student)) || {};
   if (!grades[subj]) grades[subj] = [null,null,null,null,null];
   grades[subj][dayIdx] = grade;
-  
-  fetch(FIREBASE_URL + "/grades/" + student + ".json", { method: 'PUT', body: JSON.stringify(grades) });
+  localStorage.setItem('diary_grades_' + student, JSON.stringify(grades));
 
   alert(`Оценка ${grade} выставлена: ${USERS[student].name}`);
   if (student === currentUser) renderGrades();
 }
 
-async function addNewStudent() {
+function addNewStudent() {
   const login = document.getElementById('newStLogin').value.trim().toLowerCase();
   const name = document.getElementById('newStName').value.trim();
   const pass = document.getElementById('newStPass').value.trim();
@@ -447,10 +425,10 @@ async function addNewStudent() {
   if (USERS[login]) return alert('Такой логин уже существует!');
 
   USERS[login] = { pass: pass, name: name, role: "student", class: cls };
-  fetch(FIREBASE_URL + "/users.json", { method: 'PUT', body: JSON.stringify(USERS) });
+  saveLocalUsers();
   
   const g = {}; BASE_SUBJECTS.forEach(s => g[s] = [null,null,null,null,null]);
-  fetch(FIREBASE_URL + "/grades/" + login + ".json", { method: 'PUT', body: JSON.stringify(g) });
+  localStorage.setItem('diary_grades_' + login, JSON.stringify(g));
 
   document.getElementById('newStLogin').value = '';
   document.getElementById('newStName').value = '';
@@ -460,24 +438,25 @@ async function addNewStudent() {
   alert('Ученик ' + name + ' создан!');
 }
 
-async function deleteStudent(login) {
+function deleteStudent(login) {
   if (!confirm('Удалить пользователя ' + USERS[login].name + '?')) return;
   delete USERS[login];
-  fetch(FIREBASE_URL + "/users.json", { method: 'PUT', body: JSON.stringify(USERS) });
-  fetch(FIREBASE_URL + "/grades/" + login + ".json", { method: 'DELETE' });
+  saveLocalUsers();
+  localStorage.removeItem('diary_grades_' + login);
   renderAdmin();
 }
 
-async function toggleAdmin(login) {
+function toggleAdmin(login) {
   USERS[login].role = USERS[login].role === 'admin' ? 'student' : 'admin';
-  fetch(FIREBASE_URL + "/users.json", { method: 'PUT', body: JSON.stringify(USERS) });
+  saveLocalUsers();
   renderAdmin();
 }
 
 window.addEventListener('load', () => {
+  loadLocalData();
   initTheme();
-  const saved = sessionStorage.getItem('diary_user_v10');
-  if (saved) { 
+  const saved = sessionStorage.getItem('diary_user_local');
+  if (saved && USERS[saved]) { 
     currentUser = saved; 
     startApp(); 
   }
