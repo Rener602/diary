@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#667eea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Дневник">
+<title>Электронный дневник</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overscroll-behavior: none; }
+  body {
+    background: #f0f2f5; color: #1c1e21;
+    -webkit-font-smoothing: antialiased;
+    touch-action: manipulation;
+  }
+
+  /* ========== ЭКРАН ВХОДА ========== */
+  #loginScreen {
+    min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px;
+  }
+  .login-box {
+    background: #fff; padding: 32px 24px; border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.25); width: 100%; max-width: 380px;
+  }
+  .login-box h1 { text-align: center; margin-bottom: 6px; color: #333; font-size: 24px; }
+  .login-box p.sub { text-align: center; color: #888; margin-bottom: 22px; font-size: 13px; }
+  .login-box input {
+    width: 100%; padding: 16px 18px; margin-bottom: 14px;
+    border: 2px solid #eef0f3; border-radius: 14px; font-size: 16px; outline: none;
+    background: #f8f9fb; transition: .2s;
+  }
+  .login-box input:focus { border-color: #667eea; background: #fff; }
+  .login-box button {
+    width: 100%; padding: 17px; background: #667eea; color: #fff;
+    border: none; border-radius: 14px; font-size: 17px; font-weight: 600;
+    cursor: pointer; transition: .15s;
+  }
+  .login-box button:active { transform: scale(.97); background: #556cd6; }
+  .hint { text-align: center; font-size: 12px; color: #999; margin-top: 14px; }
+  .error { color: #e74c3c; font-size: 13px; text-align: center; margin-bottom: 10px; min-height: 18px; }
+
+  /* ========== ПРИЛОЖЕНИЕ ========== */
+  #app { display: none; padding-bottom: calc(72px + env(safe-area-inset-bottom)); min-height: 100dvh; }
+
+  /* Шапка */
+  header {
+    background: #fff; padding: 14px 18px;
+    padding-top: calc(14px + env(safe-area-inset-top));
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 20;
+    box-shadow: 0 2px 12px rgba(0,0,0,.05);
+  }
+  header .logo { font-size: 17px; font-weight: 700; color: #667eea; }
+  header .user { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg,#667eea,#764ba2);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px;
+  }
+  header .user .uname { font-size: 13px; color: #555; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Контент */
+  .container { padding: 16px; max-width: 600px; margin: 0 auto; }
+  .tab-content { display: none; animation: fadeIn .2s ease; }
+  .tab-content.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .card {
+    background: #fff; border-radius: 16px; padding: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.04); margin-bottom: 14px;
+  }
+  .card h2 { font-size: 16px; margin-bottom: 12px; color: #333; font-weight: 700; }
+
+  /* ========== НИЖНЕЕ МЕНЮ ========== */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; display: flex; justify-content: space-around;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    box-shadow: 0 -2px 20px rgba(0,0,0,.08); z-index: 30;
+    border-top: 1px solid #f0f0f0;
+  }
+  .bottom-nav button {
+    flex: 1; background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 8px 4px; color: #9aa0a6; font-size: 10px; font-weight: 600;
+    transition: .15s; border-radius: 10px;
+  }
+  .bottom-nav button .icon { font-size: 22px; line-height: 1; transition: .15s; }
+  .bottom-nav button.active { color: #667eea; }
+  .bottom-nav button.active .icon { transform: scale(1.15); }
+  .bottom-nav button:active { background: #f5f6fa; }
+
+  /* ========== ОЦЕНКИ (мобильные карточки) ========== */
+  .subject-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 12px; background: #f8f9fb; border-radius: 12px; margin-bottom: 10px;
+    gap: 8px;
+  }
+  .subject-card .subj-name { font-weight: 600; font-size: 14px; color: #333; flex: 1; min-width: 0; }
+  .grades-row { display: flex; gap: 5px; flex-shrink: 0; }
+  .grade-pill {
+    width: 28px; height: 28px; line-height: 28px; text-align: center;
+    border-radius: 8px; font-weight: 700; color: #fff; font-size: 13px;
+  }
+  .grade-pill.empty { background: #e8eaed; color: #b0b3b8; }
+  .g5 { background: #27ae60; }
+  .g4 { background: #3498db; }
+  .g3 { background: #f39c12; }
+  .g2 { background: #e74c3c; }
+  .avg-badge {
+    margin-left: 6px; font-size: 12px; font-weight: 700; color: #667eea;
+    background: #eef1ff; padding: 4px 8px; border-radius: 8px;
+  }
+
+  /* ========== ДОМАШКА ========== */
+  .hw-item {
+    padding: 14px; background: #f8f9fb; border-radius: 12px; margin-bottom: 10px;
+    border-left: 4px solid #667eea;
+  }
+  .hw-item .subj { font-weight: 700; color: #667eea; margin-bottom: 5px; font-size: 13px; }
+  .hw-item .task { font-size: 14px; color: #333; line-height: 1.45; }
+  .hw-item .date { font-size: 11px; color: #999; margin-top: 6px; }
+
+  /* ========== РАСПИСАНИЕ ========== */
+  .day-block { margin-bottom: 16px; }
+  .day-name {
+    font-weight: 700; color: #667eea; margin-bottom: 8px; font-size: 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .lesson {
+    display: flex; align-items: center; gap: 10px; padding: 12px 12px;
+    background: #f8f9fb; border-radius: 12px; margin-bottom: 7px; font-size: 13px;
+  }
+  .lesson .num {
+    width: 26px; height: 26px; line-height: 26px; text-align: center;
+    background: #eef1ff; color: #667eea; border-radius: 8px; font-weight: 700; font-size: 12px;
+    flex-shrink: 0;
+  }
+  .lesson .info { flex: 1; min-width: 0; }
+  .lesson .info .name { font-weight: 600; color: #333; }
+  .lesson .info .meta { font-size: 11px; color: #999; margin-top: 2px; }
+  .lesson .room {
+    font-size: 11px; color: #667eea; background: #eef1ff;
+    padding: 3px 8px; border-radius: 6px; font-weight: 600; flex-shrink: 0;
+  }
+
+  /* ========== ЗАМЕТКИ ========== */
+  .note-form { display: flex; gap: 8px; margin-bottom: 14px; }
+  .note-form input {
+    flex: 1; padding: 13px 14px; border: 2px solid #eef0f3;
+    border-radius: 12px; font-size: 15px; outline: none; background: #f8f9fb;
+    min-width: 0;
+  }
+  .note-form input:focus { border-color: #667eea; background: #fff; }
+  .note-form button {
+    padding: 0 18px; background: #667eea; color: #fff; border: none;
+    border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 14px;
+    flex-shrink: 0;
+  }
+  .note-form button:active { background: #556cd6; }
+  .note-item {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+    padding: 13px 14px; background: #f8f9fb; border-radius: 12px; margin-bottom: 9px;
+  }
+  .note-item .note-text { flex: 1; font-size: 14px; color: #333; white-space: pre-wrap; line-height: 1.4; word-break: break-word; }
+  .note-item .note-date { font-size: 11px; color: #999; margin-top: 5px; }
+  .note-item .del-btn {
+    background: #ffebee; color: #e74c3c; border: none; border-radius: 8px;
+    width: 36px; height: 36px; cursor: pointer; font-size: 16px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .note-item .del-btn:active { background: #ffcdd2; }
+
+  /* ========== АДМИН ========== */
+  .admin-badge {
+    display: inline-block; padding: 3px 8px; background: #fef3c7; color: #92400e;
+    border-radius: 20px; font-size: 10px; font-weight: 700; margin-left: 6px;
+  }
+  .admin-section {
+    border-left: 4px solid #f39c12; padding-left: 12px; margin-bottom: 18px;
+  }
+  .admin-section h3 { font-size: 13px; color: #92400e; margin-bottom: 10px; font-weight: 700; }
+  .user-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 12px; background: #f8f9fb; border-radius: 10px; margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .user-row .uname { font-weight: 700; }
+  .user-row .ulogin { color: #999; font-size: 11px; margin-left: 5px; }
+  .user-row .ustatus { font-size: 11px; color: #27ae60; font-weight: 600; }
+
+  .admin-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .admin-form select, .admin-form button {
+    padding: 13px 10px; border: 2px solid #eef0f3; border-radius: 10px;
+    font-size: 14px; outline: none; background: #fff; -webkit-appearance: none;
+    appearance: none;
+  }
+  .admin-form select:focus { border-color: #667eea; }
+  .admin-form select:first-child { grid-column: span 2; }
+  .admin-form button {
+    grid-column: span 2; background: #667eea; color: #fff;
+    border: none; font-weight: 700; cursor: pointer; padding: 14px;
+  }
+  .admin-form button:active { background: #556cd6; }
+  .admin-hint { font-size: 11px; color: #999; text-align: center; margin-top: 4px; }
+
+  /* ========== PWA / PULL HINT ========== */
+  .empty-state {
+    text-align: center; padding: 30px 20px; color: #b0b3b8; font-size: 14px;
+  }
+  .empty-state .emoji { font-size: 40px; margin-bottom: 8px; display: block; }
+
+  /* Больше отступов на планшетах */
+  @media (min-width: 600px) {
+    .container { padding: 24px; }
+    .bottom-nav { max-width: 600px; left: 50%; transform: translateX(-50%); border-radius: 20px 20px 0 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ЭКРАН ВХОДА -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h1>📚 Дневник</h1>
+    <p class="sub">Приватный доступ</p>
+    <div class="error" id="errorMsg"></div>
+    <input type="text" id="loginUser" placeholder="Логин" autocomplete="username" autocapitalize="none">
+    <input type="password" id="loginPass" placeholder="Пароль" autocomplete="current-password">
+    <button onclick="login()">Войти</button>
+    <p class="hint">Только для двоих 🔒</p>
+  </div>
+</div>
+
+<!-- ПРИЛОЖЕНИЕ -->
+<div id="app">
+  <header>
+    <div class="logo">📚 Дневник</div>
+    <div class="user">
+      <span class="uname" id="userName"></span>
+      <div class="avatar" id="avatar"></div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- ОЦЕНКИ -->
+    <div id="tab-grades" class="tab-content active">
+      <div class="card">
+        <h2>📊 Табель успеваемости</h2>
+        <div id="gradesList"></div>
+      </div>
+    </div>
+
+    <!-- ДОМАШКА -->
+    <div id="tab-homework" class="tab-content">
+      <div class="card">
+        <h2>📝 Домашние задания</h2>
+        <div id="homeworkList"></div>
+      </div>
+    </div>
+
+    <!-- РАСПИСАНИЕ -->
+    <div id="tab-schedule" class="tab-content">
+      <div class="card">
+        <h2>🗓️ Расписание уроков</h2>
+        <div id="scheduleList"></div>
+      </div>
+    </div>
+
+    <!-- ЗАМЕТКИ -->
+    <div id="tab-notes" class="tab-content">
+      <div class="card">
+        <h2>✏️ Мои заметки</h2>
+        <div class="note-form">
+          <input type="text" id="noteInput" placeholder="Написать..." maxlength="500" enterkeyhint="send">
+          <button onclick="addNote()">+</button>
+        </div>
+        <div id="notesList"></div>
+      </div>
+    </div>
+
+    <!-- АДМИН -->
+    <div id="tab-admin" class="tab-content">
+      <div class="card">
+        <h2>⚙️ Панель админа</h2>
+
+        <div class="admin-section">
+          <h3>Пользователи</h3>
+          <div id="userList"></div>
+        </div>
+
+        <div class="admin-section">
+          <h3>Выдать оценку</h3>
+          <div class="admin-form">
+            <select id="adminSubject"></select>
+            <select id="adminGrade">
+              <option value="5">5 — отлично</option>
+              <option value="4">4 — хорошо</option>
+              <option value="3">3 — удовл.</option>
+              <option value="2">2 — плохо</option>
+            </select>
+            <select id="adminDay">
+              <option value="0">Пн</option>
+              <option value="1">Вт</option>
+              <option value="2">Ср</option>
+              <option value="3">Чт</option>
+              <option value="4">Пт</option>
+            </select>
+            <button onclick="adminSetGrade()">Поставить оценку</button>
+          </div>
+          <p class="admin-hint">Только для текущего пользователя</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- НИЖНЕЕ МЕНЮ -->
+  <nav class="bottom-nav">
+    <button class="active" data-tab="grades" onclick="showTab('grades', this)">
+      <span class="icon">📊</span>Оценки
+    </button>
+    <button data-tab="homework" onclick="showTab('homework', this)">
+      <span class="icon">📝</span>Домашка
+    </button>
+    <button data-tab="schedule" onclick="showTab('schedule', this)">
+      <span class="icon">🗓️</span>Уроки
+    </button>
+    <button data-tab="notes" onclick="showTab('notes', this)">
+      <span class="icon">✏️</span>Заметки
+    </button>
+    <button id="adminTabBtn" class="hidden" style="display:none" data-tab="admin" onclick="showTab('admin', this)">
+      <span class="icon">⚙️</span>Админ
+    </button>
+  </nav>
+</div>
+
+<script>
+/* ============================================================
+   ELECTRONIC DIARY — MOBILE EOF BUILD
+   Single-file, mobile-first, per-user localStorage
+   ============================================================ */
+
+const USERS = {
+  "admin":  { pass: "admin2024", name: "Хозяин", role: "admin" },
+  "friend": { pass: "friend2024", name: "Друг",   role: "user"  }
+};
+
+const STORAGE_PREFIX = "diary_";
+
+const BASE_SUBJECTS = [
+  "Математика", "Русский язык", "Литература", "История",
+  "Физика", "Химия", "Английский", "Информатика", "Биология", "Физкультура"
+];
+
+const BASE_SCHEDULE = [
+  { day: "Понедельник", lessons: [
+    { num: 1, time: "08:30-09:15", name: "Математика", room: "204" },
+    { num: 2, time: "09:25-10:10", name: "Русский язык", room: "112" },
+    { num: 3, time: "10:20-11:05", name: "Литература", room: "112" },
+    { num: 4, time: "11:15-12:00", name: "Английский", room: "305" },
+    { num: 5, time: "12:10-12:55", name: "История", room: "201" }
+  ]},
+  { day: "Вторник", lessons: [
+    { num: 1, time: "08:30-09:15", name: "Физика", room: "310" },
+    { num: 2, time: "09:25-10:10", name: "Математика", room: "204" },
+    { num: 3, time: "10:20-11:05", name: "Химия", room: "315" },
+    { num: 4, time: "11:15-12:00", name: "Биология", room: "210" },
+    { num: 5, time: "12:10-12:55", name: "Физкультура", room: "Спортзал" }
+  ]},
+  { day: "Среда", lessons: [
+    { num: 1, time: "08:30-09:15", name: "Информатика", room: "410" },
+    { num: 2, time: "09:25-10:10", name: "Английский", room: "305" },
+    { num: 3, time: "10:20-11:05", name: "Математика", room: "204" },
+    { num: 4, time: "11:15-12:00", name: "Русский язык", room: "112" }
+  ]},
+  { day: "Четверг", lessons: [
+    { num: 1, time: "08:30-09:15", name: "Литература", room: "112" },
+    { num: 2, time: "09:25-10:10", name: "История", room: "201" },
+    { num: 3, time: "10:20-11:05", name: "Физика", room: "310" },
+    { num: 4, time: "11:15-12:00", name: "Химия", room: "315" },
+    { num: 5, time: "12:10-12:55", name: "Математика", room: "204" }
+  ]},
+  { day: "Пятница", lessons: [
+    { num: 1, time: "08:30-09:15", name: "Русский язык", room: "112" },
+    { num: 2, time: "09:25-10:10", name: "Биология", room: "210" },
+    { num: 3, time: "10:20-11:05", name: "Информатика", room: "410" },
+    { num: 4, time: "11:15-12:00", name: "Физкультура", room: "Спортзал" }
+  ]}
+];
+
+let currentUser = null;
+
+/* ===== Хранилище ===== */
+function storageKey(kind) { return STORAGE_PREFIX + currentUser + "_" + kind; }
+function loadData(kind, fallback) {
+  try {
+    const raw = localStorage.getItem(storageKey(kind));
+    return raw ? JSON.parse(raw) : fallback;
+  } catch { return fallback; }
+}
+function saveData(kind, val) { localStorage.setItem(storageKey(kind), JSON.stringify(val)); }
+
+function initUserData() {
+  if (!localStorage.getItem(storageKey("grades"))) {
+    const grades = {};
+    BASE_SUBJECTS.forEach(s => grades[s] = [null, null, null, null, null]);
+    saveData("grades", grades);
+  }
+  if (!localStorage.getItem(storageKey("homework"))) {
+    saveData("homework", [
+      { subject: "Математика", task: "§14, № 235, 236, 240", date: "На завтра" },
+      { subject: "Русский язык", task: "Упражнение 156", date: "На завтра" }
+    ]);
+  }
+  if (!localStorage.getItem(storageKey("notes"))) saveData("notes", []);
+}
+
+/* ===== Вход ===== */
+function login() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  const err = document.getElementById('errorMsg');
+  const user = USERS[u];
+  if (user && user.pass === p) {
+    currentUser = u;
+    sessionStorage.setItem('diary_user', u);
+    err.textContent = '';
+    startApp();
+  } else {
+    err.textContent = 'Неверный логин или пароль';
+    if (navigator.vibrate) navigator.vibrate(50);
+  }
+}
+
+function logout() {
+  if (!confirm('Выйти из дневника?')) return;
+  sessionStorage.removeItem('diary_user');
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+function startApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  const info = USERS[currentUser];
+  document.getElementById('userName').textContent = info.name;
+  document.getElementById('avatar').textContent = info.name[0].toUpperCase();
+
+  const adminBtn = document.getElementById('adminTabBtn');
+  if (info.role === 'admin') {
+    adminBtn.style.display = 'flex';
+  } else {
+    adminBtn.style.display = 'none';
+  }
+
+  initUserData();
+  renderAll();
+}
+
+/* ===== Вкладки ===== */
+function showTab(name, btn) {
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (name === 'admin') renderAdmin();
+}
+
+/* ===== Рендер ===== */
+function renderAll() {
+  renderGrades();
+  renderHomework();
+  renderSchedule();
+  renderNotes();
+}
+
+/* ===== Оценки ===== */
+function renderGrades() {
+  const grades = loadData("grades", {});
+  const el = document.getElementById('gradesList');
+  el.innerHTML = BASE_SUBJECTS.map(subj => {
+    const arr = grades[subj] || [null,null,null,null,null];
+    const valid = arr.filter(x => x);
+    const avg = valid.length ? (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1) : '—';
+    const pills = arr.map(g =>
+      g ? `<span class="grade-pill g${g}">${g}</span>`
+        : `<span class="grade-pill empty">·</span>`
+    ).join('');
+    return `
+      <div class="subject-card">
+        <div class="subj-name">${subj}</div>
+        <div class="grades-row">${pills}</div>
+        <div class="avg-badge">${avg}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ===== Домашка ===== */
+function renderHomework() {
+  const hw = loadData("homework", []);
+  const el = document.getElementById('homeworkList');
+  if (!hw.length) {
+    el.innerHTML = '<div class="empty-state"><span class="emoji">🎉</span>Домашки нет!</div>';
+    return;
+  }
+  el.innerHTML = hw.map(h => `
+    <div class="hw-item">
+      <div class="subj">${h.subject}</div>
+      <div class="task">${h.task}</div>
+      <div class="date">📅 ${h.date}</div>
+    </div>
+  `).join('');
+}
+
+/* ===== Расписание ===== */
+function renderSchedule() {
+  const el = document.getElementById('scheduleList');
+  el.innerHTML = BASE_SCHEDULE.map(d => `
+    <div class="day-block">
+      <div class="day-name">📅 ${d.day}</div>
+      ${d.lessons.map(l => `
+        <div class="lesson">
+          <span class="num">${l.num}</span>
+          <div class="info">
+            <div class="name">${l.name}</div>
+            <div class="meta">${l.time}</div>
+          </div>
+          <span class="room">${l.room}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+/* ===== Заметки ===== */
+function renderNotes() {
+  const notes = loadData("notes", []);
+  const el = document.getElementById('notesList');
+  if (!notes.length) {
+    el.innerHTML = '<div class="empty-state"><span class="emoji">📝</span>Заметок нет</div>';
+    return;
+  }
+  el.innerHTML = notes.map((n, i) => `
+    <div class="note-item">
+      <div>
+        <div class="note-text">${escapeHtml(n.text)}</div>
+        <div class="note-date">${n.date}</div>
+      </div>
+      <button class="del-btn" onclick="deleteNote(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function addNote() {
+  const inp = document.getElementById('noteInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  const notes = loadData("notes", []);
+  notes.unshift({
+    text,
+    date: new Date().toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+  });
+  saveData("notes", notes);
+  inp.value = '';
+  renderNotes();
+  if (navigator.vibrate) navigator.vibrate(20);
+}
+
+function deleteNote(i) {
+  if (!confirm('Удалить заметку?')) return;
+  const notes = loadData("notes", []);
+  notes.splice(i, 1);
+  saveData("notes", notes);
+  renderNotes();
+}
+
+/* ===== Админ ===== */
+function renderAdmin() {
+  const ul = document.getElementById('userList');
+  ul.innerHTML = Object.entries(USERS).map(([login, u]) => `
+    <div class="user-row">
+      <div>
+        <span class="uname">${u.name}</span>
+        <span class="ulogin">@${login}</span>
+        ${u.role === 'admin' ? '<span class="admin-badge">ADMIN</span>' : ''}
+      </div>
+      <span class="ustatus">● online</span>
+    </div>
+  `).join('');
+
+  const sel = document.getElementById('adminSubject');
+  if (!sel.options.length) {
+    BASE_SUBJECTS.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      sel.appendChild(o);
+    });
+  }
+}
+
+function adminSetGrade() {
+  const subj = document.getElementById('adminSubject').value;
+  const grade = parseInt(document.getElementById('adminGrade').value, 10);
+  const day = parseInt(document.getElementById('adminDay').value, 10);
+
+  const grades = loadData("grades", {});
+  if (!grades[subj]) grades[subj] = [null,null,null,null,null];
+  grades[subj][day] = grade;
+  saveData("grades", grades);
+  renderGrades();
+
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✓ Готово';
+  if (navigator.vibrate) navigator.vibrate(30);
+  setTimeout(() => btn.textContent = orig, 1200);
+}
+
+/* ===== Утилиты ===== */
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+/* ===== Старт ===== */
+window.addEventListener('load', () => {
+  const saved = sessionStorage.getItem('diary_user');
+  if (saved && USERS[saved]) {
+    currentUser = saved;
+    startApp();
+  }
+  document.getElementById('loginPass').addEventListener('keypress', e => {
+    if (e.key === 'Enter') login();
+  });
+});
+
+/* Запрет зума по двойному тапу */
+let lastTouch = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTouch <= 300) e.preventDefault();
+  lastTouch = now;
+}, { passive: false });
+</script>
+</body>
+        </html>
