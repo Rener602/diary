@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#667eea">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Электронный дневник</title>
 <style>
   :root {
@@ -32,7 +31,7 @@
   .error { color: #e74c3c; font-size: 13px; text-align: center; margin-bottom: 10px; min-height: 18px; }
 
   #app { display: none; padding-bottom: calc(72px + env(safe-area-inset-bottom)); min-height: 100dvh; }
-  header { background: var(--card-bg); padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 12px var(--header-shadow); transition: background 0.3s; }
+  header { background: var(--card-bg); padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 12px var(--header-shadow); }
   header .logo { font-size: 17px; font-weight: 700; color: #667eea; }
   header .user { display: flex; align-items: center; gap: 10px; }
   .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
@@ -43,7 +42,7 @@
   .tab-content { display: none; animation: fadeIn .2s ease; }
   .tab-content.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  .card { background: var(--card-bg); border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px var(--card-shadow); margin-bottom: 14px; transition: background 0.3s; }
+  .card { background: var(--card-bg); border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px var(--card-shadow); margin-bottom: 14px; }
   .card h2 { font-size: 16px; margin-bottom: 12px; color: var(--text-main); font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
   
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--nav-bg); display: flex; justify-content: space-around; padding: 8px 4px calc(8px + env(safe-area-inset-bottom)); box-shadow: 0 -2px 20px var(--header-shadow); z-index: 30; border-top: 1px solid var(--nav-border); }
@@ -133,7 +132,7 @@
           </select>
           <input type="text" id="editSubject" placeholder="Название урока">
           <input type="text" id="editRoom" placeholder="Кабинет">
-          <button class="btn" onclick="saveLesson()">Добавить в облако</button>
+          <button class="btn" onclick="saveLesson()">Добавить</button>
         </div>
       </div>
     </div>
@@ -190,7 +189,7 @@
               <option value="10А">10А</option><option value="10Б">10Б</option>
               <option value="11А">11А</option><option value="11Б">11Б</option>
             </select>
-            <button class="btn btn-green" onclick="addNewStudent()">Зарегистрировать в облаке</button>
+            <button class="btn btn-green" onclick="addNewStudent()">Зарегистрировать</button>
           </div>
         </div>
       </div>
@@ -212,7 +211,10 @@ const DEFAULT_SCHEDULE = [
   { day: "Среда", lessons: [] }, { day: "Четверг", lessons: [] }, { day: "Пятница", lessons: [] }
 ];
 
-let USERS = {};
+let USERS = {
+  "admin":  { pass: "admin2024",  name: "Хозяин", role: "admin",   class: "9А" },
+  "friend": { pass: "friend2024", name: "Друг",   role: "student", class: "9А" }
+};
 let GLOBAL_SCHEDULE = DEFAULT_SCHEDULE;
 let currentUser = null;
 let showPasswords = false;
@@ -230,65 +232,46 @@ function toggleTheme() {
   localStorage.setItem('diary_theme', isDark ? 'dark' : 'light');
 }
 
-// СИНХРОНИЗАЦИЯ С FIREBASE
-async function cloudGet(path) {
+// ХИТРАЯ ФУНКЦИЯ: пытается скачать, если не получается за 2 сек - возвращает пустоту
+async function safeFetch(url, options = {}) {
   try {
-    const res = await fetch(FIREBASE_URL + path + ".json");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeout);
     return await res.json();
-  } catch(e) { return null; }
-}
-async function cloudSet(path, data) {
-  try {
-    await fetch(FIREBASE_URL + path + ".json", { method: 'PUT', body: JSON.stringify(data) });
-  } catch(e) {}
+  } catch (e) {
+    return null;
+  }
 }
 
 async function login() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
-  
-  document.getElementById('errorMsg').textContent = 'Связь с базой...';
-  
-  // Загружаем базу пользователей
-  let users = await cloudGet("/users");
-  
-  // Если базы нет - создаем стартовую
-  if (!users) {
-    users = {
-      "admin":  { pass: "admin2024",  name: "Хозяин", role: "admin",   class: "9А" },
-      "friend": { pass: "friend2024", name: "Друг",   role: "student", class: "9А" }
-    };
-    await cloudSet("/users", users);
-  }
-  USERS = users;
+  document.getElementById('errorMsg').textContent = 'Проверка...';
 
-  // Загружаем расписание
-  let sch = await cloudGet("/schedule");
-  if (!sch) {
-    await cloudSet("/schedule", DEFAULT_SCHEDULE);
-    GLOBAL_SCHEDULE = DEFAULT_SCHEDULE;
-  } else {
-    GLOBAL_SCHEDULE = sch;
-  }
+  // Пытаемся скачать базу (максимум 2 сек)
+  let cloudUsers = await safeFetch(FIREBASE_URL + "/users.json");
+  if (cloudUsers) USERS = cloudUsers; // Если база есть - берем оттуда
+  
+  let cloudSch = await safeFetch(FIREBASE_URL + "/schedule.json");
+  if (cloudSch) GLOBAL_SCHEDULE = cloudSch;
 
-  // Проверка пароля
   if (USERS[u] && USERS[u].pass === p) {
     currentUser = u;
-    sessionStorage.setItem('diary_user_v9', u);
+    sessionStorage.setItem('diary_user_v10', u);
     document.getElementById('errorMsg').textContent = '';
     startApp();
   } else {
     document.getElementById('errorMsg').textContent = 'Неверный логин или пароль';
   }
 }
-
-function logout() { sessionStorage.removeItem('diary_user_v9'); location.reload(); }
+function logout() { sessionStorage.removeItem('diary_user_v10'); location.reload(); }
 
 async function startApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   updateUIForRole();
-  await initGrades();
   renderAll();
 }
 
@@ -304,16 +287,6 @@ function updateUIForRole() {
   document.getElementById('manageStudentsBox').style.display = isAdmin ? 'block' : 'none';
 }
 
-async function initGrades() {
-  for (const u of Object.keys(USERS)) {
-    let grades = await cloudGet("/grades/" + u);
-    if (!grades) {
-      const g = {}; BASE_SUBJECTS.forEach(s => g[s] = [null,null,null,null,null]);
-      await cloudSet("/grades/" + u, g);
-    }
-  }
-}
-
 function showTab(name, btn) {
   document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -324,16 +297,21 @@ function showTab(name, btn) {
   if (name === 'schedule') renderSchedule();
   if (name === 'grades') renderGrades();
 }
-
 function renderAll() { renderGrades(); renderSchedule(); renderAdmin(); }
 
+// ОЦЕНКИ (Берем из памяти, а в фоне пытаемся обновить)
 async function renderGrades() {
   if (!USERS[currentUser]) return;
   document.getElementById('studentClassBadge').textContent = USERS[currentUser].class || "—";
-  const grades = await cloudGet("/grades/" + currentUser) || {};
+  
+  let cloudGrades = await safeFetch(FIREBASE_URL + "/grades/" + currentUser + ".json");
+  if (!cloudGrades) {
+    cloudGrades = {};
+    BASE_SUBJECTS.forEach(s => cloudGrades[s] = [null,null,null,null,null]);
+  }
   
   document.getElementById('gradesList').innerHTML = BASE_SUBJECTS.map(subj => {
-    const arr = grades[subj] || [null,null,null,null,null];
+    const arr = cloudGrades[subj] || [null,null,null,null,null];
     const valid = arr.filter(x => x);
     const avg = valid.length ? (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1) : '—';
     const pills = arr.map(g => g ? `<span class="grade-pill g${g}">${g}</span>` : `<span class="grade-pill empty">·</span>`).join('');
@@ -341,8 +319,11 @@ async function renderGrades() {
   }).join('');
 }
 
+// РАСПИСАНИЕ
 async function renderSchedule() {
-  GLOBAL_SCHEDULE = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
+  let cloudSch = await safeFetch(FIREBASE_URL + "/schedule.json");
+  if (cloudSch) GLOBAL_SCHEDULE = cloudSch;
+  
   const isAdmin = USERS[currentUser] && USERS[currentUser].role === 'admin';
   
   document.getElementById('scheduleList').innerHTML = GLOBAL_SCHEDULE.map((d, i) => `
@@ -366,29 +347,30 @@ async function saveLesson() {
   const room = document.getElementById('editRoom').value.trim();
   if (!subj) return alert('Введите название урока');
 
-  let sch = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
-  sch[dayIdx].lessons.push({ num: sch[dayIdx].lessons.length + 1, name: subj, room: room || "—" });
-  await cloudSet("/schedule", sch);
+  GLOBAL_SCHEDULE[dayIdx].lessons.push({ num: GLOBAL_SCHEDULE[dayIdx].lessons.length + 1, name: subj, room: room || "—" });
+  
+  // Отправляем в облако
+  fetch(FIREBASE_URL + "/schedule.json", { method: 'PUT', body: JSON.stringify(GLOBAL_SCHEDULE) });
+  
   document.getElementById('editSubject').value = ''; document.getElementById('editRoom').value = '';
   renderSchedule();
 }
 
 async function deleteLesson(dayIdx, lessonIdx) {
-  let sch = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
-  sch[dayIdx].lessons.splice(lessonIdx, 1);
-  sch[dayIdx].lessons.forEach((l, i) => l.num = i + 1);
-  await cloudSet("/schedule", sch);
+  GLOBAL_SCHEDULE[dayIdx].lessons.splice(lessonIdx, 1);
+  GLOBAL_SCHEDULE[dayIdx].lessons.forEach((l, i) => l.num = i + 1);
+  fetch(FIREBASE_URL + "/schedule.json", { method: 'PUT', body: JSON.stringify(GLOBAL_SCHEDULE) });
   renderSchedule();
 }
 
 async function clearDay(dayIdx) {
   if (!confirm('Удалить все уроки в этот день для ВСЕХ?')) return;
-  let sch = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
-  sch[dayIdx].lessons = [];
-  await cloudSet("/schedule", sch);
+  GLOBAL_SCHEDULE[dayIdx].lessons = [];
+  fetch(FIREBASE_URL + "/schedule.json", { method: 'PUT', body: JSON.stringify(GLOBAL_SCHEDULE) });
   renderSchedule();
 }
 
+// АДМИНКА
 function renderAdmin() {
   if (!USERS[currentUser]) return;
   document.getElementById('myClassSelect').value = USERS[currentUser].class || "9А";
@@ -435,7 +417,7 @@ function togglePasswords() { showPasswords = !showPasswords; renderAdmin(); }
 
 async function changeMyClass(newClass) {
   USERS[currentUser].class = newClass;
-  await cloudSet("/users/" + currentUser, USERS[currentUser]);
+  fetch(FIREBASE_URL + "/users/" + currentUser + ".json", { method: 'PUT', body: JSON.stringify(USERS[currentUser]) });
   renderGrades();
 }
 
@@ -445,10 +427,11 @@ async function teacherSetGrade() {
   const grade = parseInt(document.getElementById('adminGrade').value);
   const dayIdx = parseInt(document.getElementById('adminDay').value);
 
-  let grades = await cloudGet("/grades/" + student) || {};
+  let grades = await safeFetch(FIREBASE_URL + "/grades/" + student + ".json") || {};
   if (!grades[subj]) grades[subj] = [null,null,null,null,null];
   grades[subj][dayIdx] = grade;
-  await cloudSet("/grades/" + student, grades);
+  
+  fetch(FIREBASE_URL + "/grades/" + student + ".json", { method: 'PUT', body: JSON.stringify(grades) });
 
   alert(`Оценка ${grade} выставлена: ${USERS[student].name}`);
   if (student === currentUser) renderGrades();
@@ -461,15 +444,13 @@ async function addNewStudent() {
   const cls = document.getElementById('newStClass').value;
 
   if (!login || !name || !pass) return alert('Заполните все поля!');
-  let users = await cloudGet("/users") || {};
-  if (users[login]) return alert('Такой логин уже существует!');
+  if (USERS[login]) return alert('Такой логин уже существует!');
 
-  users[login] = { pass: pass, name: name, role: "student", class: cls };
-  await cloudSet("/users", users);
-  USERS = users;
+  USERS[login] = { pass: pass, name: name, role: "student", class: cls };
+  fetch(FIREBASE_URL + "/users.json", { method: 'PUT', body: JSON.stringify(USERS) });
   
   const g = {}; BASE_SUBJECTS.forEach(s => g[s] = [null,null,null,null,null]);
-  await cloudSet("/grades/" + login, g);
+  fetch(FIREBASE_URL + "/grades/" + login + ".json", { method: 'PUT', body: JSON.stringify(g) });
 
   document.getElementById('newStLogin').value = '';
   document.getElementById('newStName').value = '';
@@ -481,32 +462,27 @@ async function addNewStudent() {
 
 async function deleteStudent(login) {
   if (!confirm('Удалить пользователя ' + USERS[login].name + '?')) return;
-  let users = await cloudGet("/users") || {};
-  delete users[login];
-  await cloudSet("/users", users);
-  await cloudSet("/grades/" + login, null);
-  USERS = users;
+  delete USERS[login];
+  fetch(FIREBASE_URL + "/users.json", { method: 'PUT', body: JSON.stringify(USERS) });
+  fetch(FIREBASE_URL + "/grades/" + login + ".json", { method: 'DELETE' });
   renderAdmin();
 }
 
 async function toggleAdmin(login) {
-  let users = await cloudGet("/users") || {};
-  users[login].role = users[login].role === 'admin' ? 'student' : 'admin';
-  await cloudSet("/users", users);
-  USERS = users;
+  USERS[login].role = USERS[login].role === 'admin' ? 'student' : 'admin';
+  fetch(FIREBASE_URL + "/users.json", { method: 'PUT', body: JSON.stringify(USERS) });
   renderAdmin();
 }
 
 window.addEventListener('load', () => {
   initTheme();
-  const saved = sessionStorage.getItem('diary_user_v9');
+  const saved = sessionStorage.getItem('diary_user_v10');
   if (saved) { 
-    cloudGet("/users").then(u => {
-      if (u && u[saved]) { USERS = u; currentUser = saved; startApp(); }
-    });
+    currentUser = saved; 
+    startApp(); 
   }
   document.getElementById('loginPass').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
 });
 </script>
 </body>
-  </html>
+</html>
