@@ -94,7 +94,7 @@
   .bottom-nav button.active .icon { transform: scale(1.15); }
   .bottom-nav button:active { background: #f5f6fa; }
 
-  /* ========== ОЦЕНКИ (мобильные карточки) ========== */
+  /* ========== ОЦЕНКИ ========== */
   .subject-card {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 12px; background: #f8f9fb; border-radius: 12px; margin-bottom: 10px;
@@ -208,13 +208,11 @@
   .admin-form button:active { background: #556cd6; }
   .admin-hint { font-size: 11px; color: #999; text-align: center; margin-top: 4px; }
 
-  /* ========== PWA / PULL HINT ========== */
   .empty-state {
     text-align: center; padding: 30px 20px; color: #b0b3b8; font-size: 14px;
   }
   .empty-state .emoji { font-size: 40px; margin-bottom: 8px; display: block; }
 
-  /* Больше отступов на планшетах */
   @media (min-width: 600px) {
     .container { padding: 24px; }
     .bottom-nav { max-width: 600px; left: 50%; transform: translateX(-50%); border-radius: 20px 20px 0 0; }
@@ -334,21 +332,16 @@
     <button data-tab="notes" onclick="showTab('notes', this)">
       <span class="icon">✏️</span>Заметки
     </button>
-    <button id="adminTabBtn" class="hidden" style="display:none" data-tab="admin" onclick="showTab('admin', this)">
+    <button id="adminTabBtn" style="display:none" data-tab="admin" onclick="showTab('admin', this)">
       <span class="icon">⚙️</span>Админ
     </button>
   </nav>
 </div>
 
 <script>
-/* ============================================================
-   ELECTRONIC DIARY — MOBILE EOF BUILD
-   Single-file, mobile-first, per-user localStorage
-   ============================================================ */
-
 const USERS = {
   "admin":  { pass: "admin2024", name: "Хозяин", role: "admin" },
-  "friend": { pass: "friend2024", name: "Друг",   role: "user"  }
+  "friend": { pass: "friend2024", name: "Друг",   role: "admin" } // Изменили на admin
 };
 
 const STORAGE_PREFIX = "diary_";
@@ -396,7 +389,6 @@ const BASE_SCHEDULE = [
 
 let currentUser = null;
 
-/* ===== Хранилище ===== */
 function storageKey(kind) { return STORAGE_PREFIX + currentUser + "_" + kind; }
 function loadData(kind, fallback) {
   try {
@@ -421,7 +413,6 @@ function initUserData() {
   if (!localStorage.getItem(storageKey("notes"))) saveData("notes", []);
 }
 
-/* ===== Вход ===== */
 function login() {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value.trim();
@@ -467,7 +458,6 @@ function startApp() {
   renderAll();
 }
 
-/* ===== Вкладки ===== */
 function showTab(name, btn) {
   document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -477,7 +467,6 @@ function showTab(name, btn) {
   if (name === 'admin') renderAdmin();
 }
 
-/* ===== Рендер ===== */
 function renderAll() {
   renderGrades();
   renderHomework();
@@ -485,7 +474,6 @@ function renderAll() {
   renderNotes();
 }
 
-/* ===== Оценки ===== */
 function renderGrades() {
   const grades = loadData("grades", {});
   const el = document.getElementById('gradesList');
@@ -507,7 +495,6 @@ function renderGrades() {
   }).join('');
 }
 
-/* ===== Домашка ===== */
 function renderHomework() {
   const hw = loadData("homework", []);
   const el = document.getElementById('homeworkList');
@@ -524,7 +511,6 @@ function renderHomework() {
   `).join('');
 }
 
-/* ===== Расписание ===== */
 function renderSchedule() {
   const el = document.getElementById('scheduleList');
   el.innerHTML = BASE_SCHEDULE.map(d => `
@@ -544,7 +530,6 @@ function renderSchedule() {
   `).join('');
 }
 
-/* ===== Заметки ===== */
 function renderNotes() {
   const notes = loadData("notes", []);
   const el = document.getElementById('notesList');
@@ -586,7 +571,6 @@ function deleteNote(i) {
   renderNotes();
 }
 
-/* ===== Админ ===== */
 function renderAdmin() {
   const ul = document.getElementById('userList');
   ul.innerHTML = Object.entries(USERS).map(([login, u]) => `
@@ -628,14 +612,12 @@ function adminSetGrade() {
   setTimeout(() => btn.textContent = orig, 1200);
 }
 
-/* ===== Утилиты ===== */
 function escapeHtml(str) {
   return str.replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
 }
 
-/* ===== Старт ===== */
 window.addEventListener('load', () => {
   const saved = sessionStorage.getItem('diary_user');
   if (saved && USERS[saved]) {
@@ -647,7 +629,6 @@ window.addEventListener('load', () => {
   });
 });
 
-/* Запрет зума по двойному тапу */
 let lastTouch = 0;
 document.addEventListener('touchend', e => {
   const now = Date.now();
@@ -656,4 +637,4 @@ document.addEventListener('touchend', e => {
 }, { passive: false });
 </script>
 </body>
-        </html>
+</html>
