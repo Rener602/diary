@@ -86,11 +86,12 @@
   .admin-box h3 { font-size:13px; color:#f39c12; margin-bottom:8px; }
   
   /* СПИСОК УЧЕНИКОВ */
-  .student-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .student-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
   .student-row:last-child { border-bottom: none; }
   .student-info { flex: 1; }
-  .student-info b { color: #667eea; }
-  .student-info span { font-size: 12px; color: var(--text-muted); margin-left: 5px; }
+  .student-info b { color: #667eea; font-size: 15px; display: block; margin-bottom: 3px;}
+  .student-info .details { font-size: 12px; color: var(--text-muted); }
+  .student-info .pass-text { color: #e74c3c; font-weight: 600; margin-left: 5px;}
 </style>
 </head>
 <body>
@@ -145,7 +146,7 @@
       </div>
     </div>
 
-    <!-- ПАНЕЛЬ (АДМИНКА) -->
+    <!-- ПАНЕЛЬ (УЧИТЕЛЬСКАЯ) -->
     <div id="tab-admin" class="tab-content">
       <div class="card">
         <h2>⚙️ Учительская</h2>
@@ -182,21 +183,29 @@
 
         <!-- УПРАВЛЕНИЕ УЧЕНИКАМИ (Только для Хозяина) -->
         <div id="manageStudentsBox" style="display:none; border-top: 1px solid var(--border); padding-top: 15px;">
-          <h3 style="font-size:14px; color:#667eea; margin-bottom:10px;">Управление учениками</h3>
+          <h3 style="font-size:14px; color:#667eea; margin-bottom:10px;">Все пользователи (База)</h3>
           
-          <div id="studentsList" style="margin-bottom: 15px;"></div>
+          <div id="studentsList" style="margin-bottom: 20px;"></div>
 
-          <div style="background:var(--input-bg); padding:10px; border-radius:10px;">
-            <p style="font-size:12px; margin-bottom:8px; font-weight:600;">Добавить нового:</p>
+          <div style="background:var(--input-bg); padding:12px; border-radius:10px;">
+            <p style="font-size:13px; margin-bottom:10px; font-weight:600; color:#667eea;">➕ Создать нового ученика</p>
             <input type="text" id="newStLogin" placeholder="Логин (англ. буквы)">
             <input type="text" id="newStName" placeholder="Имя (напр. Иван)">
             <input type="password" id="newStPass" placeholder="Пароль">
             <select id="newStClass">
-              <option value="5А">5А</option><option value="6Б">6Б</option>
-              <option value="7А">7А</option><option value="8В">8В</option>
-              <option value="9А">9А</option><option value="10Б">10Б</option><option value="11А">11А</option>
+              <option value="1А">1А</option><option value="1Б">1Б</option>
+              <option value="2А">2А</option><option value="2Б">2Б</option>
+              <option value="3А">3А</option><option value="3Б">3Б</option>
+              <option value="4А">4А</option><option value="4Б">4Б</option>
+              <option value="5А">5А</option><option value="5Б">5Б</option>
+              <option value="6А">6А</option><option value="6Б">6Б</option>
+              <option value="7А">7А</option><option value="7Б">7Б</option>
+              <option value="8А">8А</option><option value="8Б">8Б</option>
+              <option value="9А">9А</option><option value="9Б">9Б</option>
+              <option value="10А">10А</option><option value="10Б">10Б</option>
+              <option value="11А">11А</option><option value="11Б">11Б</option>
             </select>
-            <button class="btn btn-green" onclick="addNewStudent()">Создать ученика</button>
+            <button class="btn btn-green" onclick="addNewStudent()">Зарегистрировать</button>
           </div>
         </div>
       </div>
@@ -211,40 +220,27 @@
 </div>
 
 <script>
-// ===== СИСТЕМА ПОЛЬЗОВАТЕЛЕЙ =====
-// Базовые пользователи (создаются при первом запуске)
 const DEFAULT_USERS = {
   "admin":  { pass: "admin2024",  name: "Хозяин", role: "admin",   class: "9А" },
   "friend": { pass: "friend2024", name: "Друг",   role: "student", class: "9А" }
 };
 
 let USERS = {};
-const STORAGE_PREFIX = "diary_v6_";
+const STORAGE_PREFIX = "diary_v7_";
 
-// Загрузка базы пользователей
 function loadUsers() {
   const saved = localStorage.getItem(STORAGE_PREFIX + "users_db");
-  if (saved) {
-    USERS = JSON.parse(saved);
-  } else {
-    USERS = DEFAULT_USERS;
-    saveUsers();
-  }
+  if (saved) { USERS = JSON.parse(saved); } else { USERS = DEFAULT_USERS; saveUsers(); }
 }
-function saveUsers() {
-  localStorage.setItem(STORAGE_PREFIX + "users_db", JSON.stringify(USERS));
-}
+function saveUsers() { localStorage.setItem(STORAGE_PREFIX + "users_db", JSON.stringify(USERS)); }
 
-// ===== ТЕМА =====
+// --- ТЕМА ---
 function initTheme() {
   const savedTheme = localStorage.getItem('diary_theme');
   const themeBtn = document.getElementById('themeBtn');
   if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    document.body.classList.add('dark');
-    themeBtn.textContent = '☀️';
-  } else {
-    themeBtn.textContent = '🌙';
-  }
+    document.body.classList.add('dark'); themeBtn.textContent = '☀️';
+  } else { themeBtn.textContent = '🌙'; }
 }
 function toggleTheme() {
   const isDark = document.body.classList.toggle('dark');
@@ -252,7 +248,7 @@ function toggleTheme() {
   localStorage.setItem('diary_theme', isDark ? 'dark' : 'light');
 }
 
-// ===== ОСНОВНЫЕ ДАННЫЕ =====
+// --- ДАННЫЕ ---
 const BASE_SUBJECTS = ["Математика", "Русский язык", "Литература", "История", "Физика", "Химия", "Английский", "Информатика", "Биология", "Физкультура"];
 const DEFAULT_SCHEDULE = [
   { day: "Понедельник", lessons: [] }, { day: "Вторник", lessons: [] },
@@ -265,7 +261,6 @@ function loadGlobal(key, fallback) {
   try { const raw = localStorage.getItem(STORAGE_PREFIX + "global_" + key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
 }
 function saveGlobal(key, val) { localStorage.setItem(STORAGE_PREFIX + "global_" + key, JSON.stringify(val)); }
-
 function loadUserData(user, key, fallback) {
   try { const raw = localStorage.getItem(STORAGE_PREFIX + user + "_" + key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
 }
@@ -273,7 +268,6 @@ function saveUserData(user, key, val) { localStorage.setItem(STORAGE_PREFIX + us
 
 function initData() {
   if (!localStorage.getItem(STORAGE_PREFIX + "global_schedule")) saveGlobal("schedule", DEFAULT_SCHEDULE);
-  // Создаем пустые оценки для всех, у кого их нет
   Object.keys(USERS).forEach(u => {
     if (!localStorage.getItem(STORAGE_PREFIX + u + "_grades")) {
       const g = {}; BASE_SUBJECTS.forEach(s => g[s] = [null,null,null,null,null]);
@@ -282,24 +276,20 @@ function initData() {
   });
 }
 
-// ===== ВХОД =====
+// --- ВХОД ---
 function login() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
   if (USERS[u] && USERS[u].pass === p) {
     currentUser = u;
-    sessionStorage.setItem('diary_user_v6', u);
+    sessionStorage.setItem('diary_user_v7', u);
     document.getElementById('errorMsg').textContent = '';
     startApp();
   } else {
     document.getElementById('errorMsg').textContent = 'Неверный логин или пароль';
   }
 }
-
-function logout() {
-  sessionStorage.removeItem('diary_user_v6');
-  location.reload();
-}
+function logout() { sessionStorage.removeItem('diary_user_v7'); location.reload(); }
 
 function startApp() {
   document.getElementById('loginScreen').style.display = 'none';
@@ -308,7 +298,6 @@ function startApp() {
   document.getElementById('userName').textContent = info.name;
   document.getElementById('avatar').textContent = info.name[0].toUpperCase();
   
-  // Если это Хозяин (admin) - показываем редактор уроков и управление учениками
   if (currentUser === 'admin') {
     document.getElementById('scheduleEditor').style.display = 'block';
     document.getElementById('manageStudentsBox').style.display = 'block';
@@ -318,7 +307,7 @@ function startApp() {
   renderAll();
 }
 
-// ===== НАВИГАЦИЯ =====
+// --- НАВИГАЦИЯ ---
 function showTab(name, btn) {
   document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -329,21 +318,13 @@ function showTab(name, btn) {
   if (name === 'schedule') renderSchedule();
 }
 
-function renderAll() {
-  renderGrades();
-  renderSchedule();
-  renderAdmin();
-}
+function renderAll() { renderGrades(); renderSchedule(); renderAdmin(); }
 
-// ===== ОЦЕНКИ =====
+// --- ОЦЕНКИ ---
 function renderGrades() {
-  const cls = USERS[currentUser].class || "—";
-  document.getElementById('studentClassBadge').textContent = cls;
-
+  document.getElementById('studentClassBadge').textContent = USERS[currentUser].class || "—";
   const grades = loadUserData(currentUser, "grades", {});
-  const el = document.getElementById('gradesList');
-  
-  el.innerHTML = BASE_SUBJECTS.map(subj => {
+  document.getElementById('gradesList').innerHTML = BASE_SUBJECTS.map(subj => {
     const arr = grades[subj] || [null,null,null,null,null];
     const valid = arr.filter(x => x);
     const avg = valid.length ? (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1) : '—';
@@ -352,11 +333,10 @@ function renderGrades() {
   }).join('');
 }
 
-// ===== РАСПИСАНИЕ =====
+// --- РАСПИСАНИЕ ---
 function renderSchedule() {
   const sch = loadGlobal("schedule", DEFAULT_SCHEDULE);
-  const el = document.getElementById('scheduleList');
-  el.innerHTML = sch.map((d, i) => `
+  document.getElementById('scheduleList').innerHTML = sch.map((d, i) => `
     <div class="day-block">
       <div class="day-name">📅 ${d.day} ${currentUser === 'admin' ? `<button onclick="clearDay(${i})" style="border:none; background:none; color:#e74c3c; font-size:12px;">Очистить</button>` : ''}</div>
       ${d.lessons.length ? d.lessons.map((l, j) => `
@@ -376,65 +356,81 @@ function saveLesson() {
   const subj = document.getElementById('editSubject').value.trim();
   const room = document.getElementById('editRoom').value.trim();
   if (!subj) return alert('Введите название урока');
-
   let sch = loadGlobal("schedule", DEFAULT_SCHEDULE);
   sch[dayIdx].lessons.push({ num: sch[dayIdx].lessons.length + 1, name: subj, room: room || "—" });
   saveGlobal("schedule", sch);
-  document.getElementById('editSubject').value = '';
-  document.getElementById('editRoom').value = '';
+  document.getElementById('editSubject').value = ''; document.getElementById('editRoom').value = '';
   renderSchedule();
 }
 function deleteLesson(dayIdx, lessonIdx) {
   let sch = loadGlobal("schedule", DEFAULT_SCHEDULE);
   sch[dayIdx].lessons.splice(lessonIdx, 1);
   sch[dayIdx].lessons.forEach((l, i) => l.num = i + 1);
-  saveGlobal("schedule", sch);
-  renderSchedule();
+  saveGlobal("schedule", sch); renderSchedule();
 }
 function clearDay(dayIdx) {
   if (!confirm('Удалить все уроки в этот день?')) return;
   let sch = loadGlobal("schedule", DEFAULT_SCHEDULE);
-  sch[dayIdx].lessons = [];
-  saveGlobal("schedule", sch);
-  renderSchedule();
+  sch[dayIdx].lessons = []; saveGlobal("schedule", sch); renderSchedule();
 }
 
-// ===== УЧИТЕЛЬСКАЯ =====
+// --- УЧИТЕЛЬСКАЯ ---
+let showPasswords = false; // Флаг для показа паролей
+
 function renderAdmin() {
-  // Селект для выбора своего класса
   document.getElementById('myClassSelect').value = USERS[currentUser].class || "9А";
-
-  // Заполняем выпадающий список УЧЕНИКОВ для выставления оценок
+  
+  // Обновляем список учеников для оценок
   const stSelect = document.getElementById('adminStudent');
-  stSelect.innerHTML = Object.keys(USERS).map(u => 
-    `<option value="${u}">${USERS[u].name} (@${u})</option>`
-  ).join('');
+  stSelect.innerHTML = Object.keys(USERS).map(u => `<option value="${u}">${USERS[u].name} (@${u})</option>`).join('');
 
-  // Заполняем ПРЕДМЕТЫ
   const subSelect = document.getElementById('adminSubject');
   if (!subSelect.options.length) {
     BASE_SUBJECTS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; subSelect.appendChild(o); });
   }
 
-  // Список учеников для удаления (только для admin)
+  // Отрисовка базы пользователей (видна только Хозяину)
   if (currentUser === 'admin') {
     const listEl = document.getElementById('studentsList');
-    listEl.innerHTML = Object.keys(USERS).map(u => {
-      if (u === 'admin') return ''; // Себя удалить нельзя
+    
+    // Кнопка показать/скрыть пароли
+    let html = `<div style="text-align:right; margin-bottom:10px;">
+      <button onclick="togglePasswords()" style="background:none; border:none; color:#667eea; font-size:12px; font-weight:600; cursor:pointer;">
+        ${showPasswords ? 'Скрыть пароли' : 'Показать пароли'}
+      </button>
+    </div>`;
+
+    html += Object.keys(USERS).map(u => {
+      const user = USERS[u];
+      const passDisplay = showPasswords ? `<span class="pass-text">🔑 ${user.pass}</span>` : `<span style="color:var(--text-muted)">🔑 ••••••••</span>`;
+      
+      // Кнопка удаления (нельзя удалить себя)
+      const delBtn = u === 'admin' ? '' : `<button onclick="deleteStudent('${u}')" style="background:none;border:none;font-size:20px;cursor:pointer;">🗑️</button>`;
+
       return `
         <div class="student-row">
-          <div class="student-info"><b>${USERS[u].name}</b> <span>@${u} · ${USERS[u].class}</span></div>
-          <button onclick="deleteStudent('${u}')" style="background:none;border:none;color:#e74c3c;font-size:18px;cursor:pointer;">🗑️</button>
+          <div class="student-info">
+            <b>${user.name}</b>
+            <div class="details">
+              Логин: <b>${u}</b> | Класс: ${user.class || '—'} | ${passDisplay}
+            </div>
+          </div>
+          ${delBtn}
         </div>
       `;
     }).join('');
+    listEl.innerHTML = html;
   }
+}
+
+function togglePasswords() {
+  showPasswords = !showPasswords;
+  renderAdmin();
 }
 
 function changeMyClass(newClass) {
   USERS[currentUser].class = newClass;
-  saveUsers();
-  renderGrades();
+  saveUsers(); renderGrades();
 }
 
 function teacherSetGrade() {
@@ -452,7 +448,7 @@ function teacherSetGrade() {
   if (student === currentUser) renderGrades();
 }
 
-// ===== УПРАВЛЕНИЕ УЧЕНИКАМИ =====
+// --- УПРАВЛЕНИЕ БАЗОЙ ---
 function addNewStudent() {
   const login = document.getElementById('newStLogin').value.trim().toLowerCase();
   const name = document.getElementById('newStName').value.trim();
@@ -464,31 +460,28 @@ function addNewStudent() {
 
   USERS[login] = { pass: pass, name: name, role: "student", class: cls };
   saveUsers();
-  initData(); // Создаем ему пустые оценки
+  initData();
   
   document.getElementById('newStLogin').value = '';
   document.getElementById('newStName').value = '';
   document.getElementById('newStPass').value = '';
   
   renderAdmin();
-  alert('Ученик создан! Теперь он может зайти под логином ' + login);
+  alert('Ученик ' + name + ' создан!\nЛогин: ' + login + '\nПароль: ' + pass);
 }
 
 function deleteStudent(login) {
-  if (!confirm('Удалить ученика ' + USERS[login].name + '?')) return;
+  if (!confirm('Удалить пользователя ' + USERS[login].name + '?')) return;
   delete USERS[login];
   saveUsers();
   renderAdmin();
 }
 
-// ===== СТАРТ =====
 window.addEventListener('load', () => {
   initTheme();
-  loadUsers(); // Загружаем базу юзеров
-  
-  const saved = sessionStorage.getItem('diary_user_v6');
+  loadUsers();
+  const saved = sessionStorage.getItem('diary_user_v7');
   if (saved && USERS[saved]) { currentUser = saved; startApp(); }
-  
   document.getElementById('loginPass').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
 });
 </script>
