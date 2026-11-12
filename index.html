@@ -17,12 +17,10 @@
     --border: #333333; --input-bg: #2c2c2c; --header-shadow: rgba(0,0,0,.3);
     --card-shadow: rgba(0,0,0,.2); --lesson-bg: #2c2c2c; --nav-bg: #1e1e1e; --nav-border: #333333;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; overscroll-behavior: none; }
   body { background: var(--bg); color: var(--text-main); -webkit-font-smoothing: antialiased; touch-action: manipulation; transition: background 0.3s, color 0.3s; }
 
-  /* ВХОД */
   #loginScreen { min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px; }
   .login-box { background: #fff; padding: 32px 24px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,.25); width: 100%; max-width: 380px; }
   .login-box h1 { text-align: center; margin-bottom: 6px; color: #333; font-size: 24px; }
@@ -33,7 +31,6 @@
   .login-box button:active { transform: scale(.97); background: #556cd6; }
   .error { color: #e74c3c; font-size: 13px; text-align: center; margin-bottom: 10px; min-height: 18px; }
 
-  /* ПРИЛОЖЕНИЕ */
   #app { display: none; padding-bottom: calc(72px + env(safe-area-inset-bottom)); min-height: 100dvh; }
   header { background: var(--card-bg); padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 12px var(--header-shadow); transition: background 0.3s; }
   header .logo { font-size: 17px; font-weight: 700; color: #667eea; }
@@ -42,7 +39,6 @@
   header .user .uname { font-size: 13px; color: var(--text-muted); max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-main); padding: 5px; }
 
-  /* КОНТЕНТ */
   .container { padding: 16px; max-width: 600px; margin: 0 auto; }
   .tab-content { display: none; animation: fadeIn .2s ease; }
   .tab-content.active { display: block; }
@@ -50,14 +46,12 @@
   .card { background: var(--card-bg); border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px var(--card-shadow); margin-bottom: 14px; transition: background 0.3s; }
   .card h2 { font-size: 16px; margin-bottom: 12px; color: var(--text-main); font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
   
-  /* МЕНЮ */
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--nav-bg); display: flex; justify-content: space-around; padding: 8px 4px calc(8px + env(safe-area-inset-bottom)); box-shadow: 0 -2px 20px var(--header-shadow); z-index: 30; border-top: 1px solid var(--nav-border); }
   .bottom-nav button { flex: 1; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; color: var(--text-muted); font-size: 10px; font-weight: 600; transition: .15s; border-radius: 10px; }
   .bottom-nav button .icon { font-size: 22px; line-height: 1; transition: .15s; }
   .bottom-nav button.active { color: #667eea; }
   .bottom-nav button.active .icon { transform: scale(1.15); }
 
-  /* ОЦЕНКИ */
   .subject-card { display: flex; align-items: center; justify-content: space-between; padding: 14px 12px; background: var(--lesson-bg); border-radius: 12px; margin-bottom: 10px; gap: 8px; }
   .subject-card .subj-name { font-weight: 600; font-size: 14px; color: var(--text-main); flex: 1; min-width: 0; }
   .grades-row { display: flex; gap: 5px; flex-shrink: 0; }
@@ -66,7 +60,6 @@
   .g5 { background: #27ae60; } .g4 { background: #3498db; } .g3 { background: #f39c12; } .g2 { background: #e74c3c; }
   .avg-badge { margin-left: 6px; font-size: 12px; font-weight: 700; color: #667eea; background: rgba(102, 126, 234, 0.15); padding: 4px 8px; border-radius: 8px; }
 
-  /* РАСПИСАНИЕ */
   .day-block { margin-bottom: 16px; }
   .day-name { font-weight: 700; color: #667eea; margin-bottom: 8px; font-size: 14px; display: flex; justify-content: space-between; }
   .lesson { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--lesson-bg); border-radius: 12px; margin-bottom: 7px; font-size: 13px; }
@@ -75,7 +68,6 @@
   .lesson .info .name { font-weight: 600; color: var(--text-main); }
   .lesson .room { font-size: 11px; color: #667eea; background: rgba(102, 126, 234, 0.15); padding: 3px 8px; border-radius: 6px; font-weight: 600; }
 
-  /* ФОРМЫ */
   input, select { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; background: var(--input-bg); margin-bottom: 8px; color: var(--text-main); }
   input:focus, select:focus { border-color: #667eea; }
   .btn { width: 100%; padding: 12px; background: #667eea; color: #fff; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
@@ -85,7 +77,6 @@
   .admin-box { margin-bottom:20px; background:var(--input-bg); padding:12px; border-radius:10px; border: 1px solid var(--border); }
   .admin-box h3 { font-size:13px; color:#f39c12; margin-bottom:8px; }
   
-  /* СПИСОК УЧЕНИКОВ */
   .student-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
   .student-row:last-child { border-bottom: none; }
   .student-info { flex: 1; }
@@ -124,7 +115,6 @@
   </header>
 
   <div class="container">
-    <!-- ОЦЕНКИ -->
     <div id="tab-grades" class="tab-content active">
       <div class="card">
         <h2>📊 Мои оценки <span id="studentClassBadge" class="avg-badge"></span></h2>
@@ -132,7 +122,6 @@
       </div>
     </div>
 
-    <!-- РАСПИСАНИЕ -->
     <div id="tab-schedule" class="tab-content">
       <div class="card">
         <h2>🗓️ Расписание (Общее)</h2>
@@ -151,12 +140,10 @@
       </div>
     </div>
 
-    <!-- ПАНЕЛЬ (УЧИТЕЛЬСКАЯ) -->
     <div id="tab-admin" class="tab-content">
       <div class="card">
         <h2>⚙️ Учительская</h2>
         
-        <!-- Выбор своего класса -->
         <div class="admin-box">
           <h3>Мой класс</h3>
           <select id="myClassSelect" onchange="changeMyClass(this.value)">
@@ -174,7 +161,6 @@
           </select>
         </div>
 
-        <!-- Выдача оценок (Только для Админов) -->
         <div id="teacherGradeBox" style="display:none; border-left: 4px solid #f39c12; padding-left: 12px; margin-bottom: 20px;">
           <h3 style="font-size:13px; color:#f39c12; margin-bottom:10px;">Выдать оценку</h3>
           <select id="adminStudent"></select>
@@ -186,12 +172,9 @@
           <button class="btn" onclick="teacherSetGrade()">Поставить оценку</button>
         </div>
 
-        <!-- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (Только для Админов) -->
         <div id="manageStudentsBox" style="display:none; border-top: 1px solid var(--border); padding-top: 15px;">
           <h3 style="font-size:14px; color:#667eea; margin-bottom:10px;">База пользователей</h3>
-          
           <div id="studentsList" style="margin-bottom: 20px;"></div>
-
           <div style="background:var(--input-bg); padding:12px; border-radius:10px;">
             <p style="font-size:13px; margin-bottom:10px; font-weight:600; color:#667eea;">➕ Создать нового ученика</p>
             <input type="text" id="newStLogin" placeholder="Логин (англ. буквы)">
@@ -225,9 +208,7 @@
 </div>
 
 <script>
-// Вставлена твоя ссылка Firebase
 const FIREBASE_URL = "https://diary-491d6-default-rtdb.firebaseio.com"; 
-
 const BASE_SUBJECTS = ["Математика", "Русский язык", "Литература", "История", "Физика", "Химия", "Английский", "Информатика", "Биология", "Физкультура"];
 const DEFAULT_SCHEDULE = [
   { day: "Понедельник", lessons: [] }, { day: "Вторник", lessons: [] },
@@ -239,7 +220,6 @@ let GLOBAL_SCHEDULE = DEFAULT_SCHEDULE;
 let currentUser = null;
 let showPasswords = false;
 
-// === ТЕМА ===
 function initTheme() {
   const savedTheme = localStorage.getItem('diary_theme');
   const themeBtn = document.getElementById('themeBtn');
@@ -253,24 +233,26 @@ function toggleTheme() {
   localStorage.setItem('diary_theme', isDark ? 'dark' : 'light');
 }
 
-// === ОБЛАКО (FIREBASE REST API) ===
+// ЗАЩИТА ОТ ЗАВИСАНИЯ (Таймаут 5 секунд)
 async function cloudGet(path) {
   try {
-    const res = await fetch(FIREBASE_URL + path + ".json");
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 сек
+    const res = await fetch(FIREBASE_URL + path + ".json", { signal: controller.signal });
+    clearTimeout(timeoutId);
     return await res.json();
-  } catch(e) { console.error("Ошибка чтения:", e); return null; }
+  } catch(e) { 
+    console.error("Ошибка чтения:", e); 
+    return null; 
+  }
 }
 
 async function cloudSet(path, data) {
   try {
-    await fetch(FIREBASE_URL + path + ".json", {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    });
+    await fetch(FIREBASE_URL + path + ".json", { method: 'PUT', body: JSON.stringify(data) });
   } catch(e) { console.error("Ошибка записи:", e); }
 }
 
-// === ИНИЦИАЛИЗАЦИЯ ===
 async function loadDataFromCloud() {
   let users = await cloudGet("/users");
   if (!users) {
@@ -295,16 +277,16 @@ async function login() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
   
-  document.getElementById('errorMsg').textContent = 'Загрузка...';
+  document.getElementById('errorMsg').textContent = 'Подключение к базе...';
   await loadDataFromCloud();
 
-  if (USERS[u] && USERS[u].pass === p) {
+  if (USERS && USERS[u] && USERS[u].pass === p) {
     currentUser = u;
     sessionStorage.setItem('diary_user_v8', u);
     document.getElementById('errorMsg').textContent = '';
     startApp();
   } else {
-    document.getElementById('errorMsg').textContent = 'Неверный логин или пароль';
+    document.getElementById('errorMsg').textContent = 'Неверный логин или пароль (или нет связи)';
   }
 }
 function logout() { sessionStorage.removeItem('diary_user_v8'); location.reload(); }
@@ -312,7 +294,6 @@ function logout() { sessionStorage.removeItem('diary_user_v8'); location.reload(
 async function startApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  
   updateUIForRole();
   initData();
   renderAll();
@@ -320,6 +301,7 @@ async function startApp() {
 
 function updateUIForRole() {
   const info = USERS[currentUser];
+  if (!info) return;
   document.getElementById('userName').textContent = info.name;
   document.getElementById('avatar').textContent = info.name[0].toUpperCase();
   
@@ -339,7 +321,6 @@ function initData() {
   });
 }
 
-// === НАВИГАЦИЯ ===
 function showTab(name, btn) {
   document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -353,8 +334,8 @@ function showTab(name, btn) {
 
 function renderAll() { renderGrades(); renderSchedule(); renderAdmin(); }
 
-// === ОЦЕНКИ ===
 async function renderGrades() {
+  if (!USERS[currentUser]) return;
   document.getElementById('studentClassBadge').textContent = USERS[currentUser].class || "—";
   const grades = await cloudGet("/grades/" + currentUser) || {};
   
@@ -367,10 +348,10 @@ async function renderGrades() {
   }).join('');
 }
 
-// === РАСПИСАНИЕ ===
 async function renderSchedule() {
-  GLOBAL_SCHEDULE = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
-  const isAdmin = USERS[currentUser].role === 'admin';
+  let fetched = await cloudGet("/schedule");
+  GLOBAL_SCHEDULE = fetched || DEFAULT_SCHEDULE;
+  const isAdmin = USERS[currentUser] && USERS[currentUser].role === 'admin';
   
   document.getElementById('scheduleList').innerHTML = GLOBAL_SCHEDULE.map((d, i) => `
     <div class="day-block">
@@ -395,7 +376,6 @@ async function saveLesson() {
 
   let sch = await cloudGet("/schedule") || DEFAULT_SCHEDULE;
   sch[dayIdx].lessons.push({ num: sch[dayIdx].lessons.length + 1, name: subj, room: room || "—" });
-  
   await cloudSet("/schedule", sch);
   document.getElementById('editSubject').value = ''; document.getElementById('editRoom').value = '';
   renderSchedule();
@@ -417,8 +397,8 @@ async function clearDay(dayIdx) {
   renderSchedule();
 }
 
-// === УЧИТЕЛЬСКАЯ ===
 function renderAdmin() {
+  if (!USERS[currentUser]) return;
   document.getElementById('myClassSelect').value = USERS[currentUser].class || "9А";
   
   const stSelect = document.getElementById('adminStudent');
@@ -442,21 +422,14 @@ function renderAdmin() {
       const passDisplay = showPasswords ? `<span class="pass-text">🔑 ${user.pass}</span>` : `<span style="color:var(--text-muted)">🔑 ••••••••</span>`;
       const isTargetAdmin = user.role === 'admin';
       const roleBadge = isTargetAdmin ? `<span class="badge-admin">ADMIN</span>` : '';
-      
       const delBtn = u === 'admin' ? '' : `<button onclick="deleteStudent('${u}')" title="Удалить">🗑️</button>`;
-      
-      const adminBtn = u === 'admin' ? '' : `
-        <button onclick="toggleAdmin('${u}')" title="${isTargetAdmin ? 'Забрать админку' : 'Сделать админом'}" style="color: ${isTargetAdmin ? '#f39c12' : '#27ae60'};">
-          ${isTargetAdmin ? '👑' : '⬆️'}
-        </button>`;
+      const adminBtn = u === 'admin' ? '' : `<button onclick="toggleAdmin('${u}')" title="${isTargetAdmin ? 'Забрать админку' : 'Сделать админом'}" style="color: ${isTargetAdmin ? '#f39c12' : '#27ae60'};">${isTargetAdmin ? '👑' : '⬆️'}</button>`;
 
       return `
         <div class="student-row">
           <div class="student-info">
             <b>${user.name} ${roleBadge}</b>
-            <div class="details">
-              Логин: <b>${u}</b> | Класс: ${user.class || '—'} | ${passDisplay}
-            </div>
+            <div class="details">Логин: <b>${u}</b> | Класс: ${user.class || '—'} | ${passDisplay}</div>
           </div>
           <div class="action-btns">${adminBtn} ${delBtn}</div>
         </div>
@@ -489,7 +462,6 @@ async function teacherSetGrade() {
   if (student === currentUser) renderGrades();
 }
 
-// === УПРАВЛЕНИЕ БАЗОЙ ===
 async function addNewStudent() {
   const login = document.getElementById('newStLogin').value.trim().toLowerCase();
   const name = document.getElementById('newStName').value.trim();
@@ -497,7 +469,6 @@ async function addNewStudent() {
   const cls = document.getElementById('newStClass').value;
 
   if (!login || !name || !pass) return alert('Заполните все поля!');
-  
   let users = await cloudGet("/users") || {};
   if (users[login]) return alert('Такой логин уже существует!');
 
@@ -505,7 +476,6 @@ async function addNewStudent() {
   await cloudSet("/users", users);
   USERS = users;
   
-  // Создаем пустые оценки
   const g = {}; BASE_SUBJECTS.forEach(s => g[s] = [null,null,null,null,null]);
   await cloudSet("/grades/" + login, g);
 
@@ -514,7 +484,7 @@ async function addNewStudent() {
   document.getElementById('newStPass').value = '';
   
   renderAdmin();
-  alert('Ученик ' + name + ' создан!\nЛогин: ' + login + '\nПароль: ' + pass);
+  alert('Ученик ' + name + ' создан!');
 }
 
 async function deleteStudent(login) {
@@ -522,20 +492,14 @@ async function deleteStudent(login) {
   let users = await cloudGet("/users") || {};
   delete users[login];
   await cloudSet("/users", users);
-  await cloudSet("/grades/" + login, null); // Удаляем его оценки
+  await cloudSet("/grades/" + login, null);
   USERS = users;
   renderAdmin();
 }
 
 async function toggleAdmin(login) {
   let users = await cloudGet("/users") || {};
-  if (users[login].role === 'admin') {
-    users[login].role = 'student';
-    alert(users[login].name + ' больше не админ.');
-  } else {
-    users[login].role = 'admin';
-    alert(users[login].name + ' теперь админ!');
-  }
+  users[login].role = users[login].role === 'admin' ? 'student' : 'admin';
   await cloudSet("/users", users);
   USERS = users;
   renderAdmin();
@@ -545,9 +509,8 @@ window.addEventListener('load', () => {
   initTheme();
   const saved = sessionStorage.getItem('diary_user_v8');
   if (saved) { 
-    // При перезагрузке тоже нужно подтянуть базу
     loadDataFromCloud().then(() => {
-      if (USERS[saved]) { currentUser = saved; startApp(); }
+      if (USERS && USERS[saved]) { currentUser = saved; startApp(); }
     });
   }
   document.getElementById('loginPass').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
