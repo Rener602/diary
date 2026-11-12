@@ -7,16 +7,46 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Электронный дневник</title>
 <style>
+  /* ========== ЦВЕТОВЫЕ ПЕРЕМЕННЫЕ ========== */
+  :root {
+    --bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --text-main: #1c1e21;
+    --text-muted: #888;
+    --border: #eef0f3;
+    --input-bg: #f8f9fb;
+    --header-shadow: rgba(0,0,0,.05);
+    --card-shadow: rgba(0,0,0,.04);
+    --lesson-bg: #f8f9fb;
+    --nav-bg: #ffffff;
+    --nav-border: #f0f0f0;
+  }
+
+  /* ========== ТЁМНАЯ ТЕМА ========== */
+  body.dark {
+    --bg: #121212;
+    --card-bg: #1e1e1e;
+    --text-main: #e4e6eb;
+    --text-muted: #a0a0a0;
+    --border: #333333;
+    --input-bg: #2c2c2c;
+    --header-shadow: rgba(0,0,0,.3);
+    --card-shadow: rgba(0,0,0,.2);
+    --lesson-bg: #2c2c2c;
+    --nav-bg: #1e1e1e;
+    --nav-border: #333333;
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; overscroll-behavior: none; }
-  body { background: #f0f2f5; color: #1c1e21; -webkit-font-smoothing: antialiased; touch-action: manipulation; }
+  body { background: var(--bg); color: var(--text-main); -webkit-font-smoothing: antialiased; touch-action: manipulation; transition: background 0.3s, color 0.3s; }
 
   /* ЭКРАН ВХОДА */
   #loginScreen { min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px; }
   .login-box { background: #fff; padding: 32px 24px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,.25); width: 100%; max-width: 380px; }
   .login-box h1 { text-align: center; margin-bottom: 6px; color: #333; font-size: 24px; }
   .login-box p.sub { text-align: center; color: #888; margin-bottom: 22px; font-size: 13px; }
-  .login-box input { width: 100%; padding: 16px 18px; margin-bottom: 14px; border: 2px solid #eef0f3; border-radius: 14px; font-size: 16px; outline: none; background: #f8f9fb; transition: .2s; }
+  .login-box input { width: 100%; padding: 16px 18px; margin-bottom: 14px; border: 2px solid #eef0f3; border-radius: 14px; font-size: 16px; outline: none; background: #f8f9fb; transition: .2s; color: #1c1e21; }
   .login-box input:focus { border-color: #667eea; background: #fff; }
   .login-box button { width: 100%; padding: 17px; background: #667eea; color: #fff; border: none; border-radius: 14px; font-size: 17px; font-weight: 600; cursor: pointer; transition: .15s; }
   .login-box button:active { transform: scale(.97); background: #556cd6; }
@@ -24,51 +54,56 @@
 
   /* ПРИЛОЖЕНИЕ */
   #app { display: none; padding-bottom: calc(72px + env(safe-area-inset-bottom)); min-height: 100dvh; }
-  header { background: #fff; padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+  header { background: var(--card-bg); padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 12px var(--header-shadow); transition: background 0.3s; }
   header .logo { font-size: 17px; font-weight: 700; color: #667eea; }
   header .user { display: flex; align-items: center; gap: 10px; }
   .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
-  header .user .uname { font-size: 13px; color: #555; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header .user .uname { font-size: 13px; color: var(--text-muted); max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  
+  .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-main); padding: 5px; }
 
   /* КОНТЕНТ */
   .container { padding: 16px; max-width: 600px; margin: 0 auto; }
   .tab-content { display: none; animation: fadeIn .2s ease; }
   .tab-content.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  .card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.04); margin-bottom: 14px; }
-  .card h2 { font-size: 16px; margin-bottom: 12px; color: #333; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+  .card { background: var(--card-bg); border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px var(--card-shadow); margin-bottom: 14px; transition: background 0.3s; }
+  .card h2 { font-size: 16px; margin-bottom: 12px; color: var(--text-main); font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
   
   /* МЕНЮ */
-  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; display: flex; justify-content: space-around; padding: 8px 4px calc(8px + env(safe-area-inset-bottom)); box-shadow: 0 -2px 20px rgba(0,0,0,.08); z-index: 30; border-top: 1px solid #f0f0f0; }
-  .bottom-nav button { flex: 1; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; color: #9aa0a6; font-size: 10px; font-weight: 600; transition: .15s; border-radius: 10px; }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--nav-bg); display: flex; justify-content: space-around; padding: 8px 4px calc(8px + env(safe-area-inset-bottom)); box-shadow: 0 -2px 20px var(--header-shadow); z-index: 30; border-top: 1px solid var(--nav-border); transition: background 0.3s; }
+  .bottom-nav button { flex: 1; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; color: var(--text-muted); font-size: 10px; font-weight: 600; transition: .15s; border-radius: 10px; }
   .bottom-nav button .icon { font-size: 22px; line-height: 1; transition: .15s; }
   .bottom-nav button.active { color: #667eea; }
   .bottom-nav button.active .icon { transform: scale(1.15); }
 
   /* ОЦЕНКИ */
-  .subject-card { display: flex; align-items: center; justify-content: space-between; padding: 14px 12px; background: #f8f9fb; border-radius: 12px; margin-bottom: 10px; gap: 8px; }
-  .subject-card .subj-name { font-weight: 600; font-size: 14px; color: #333; flex: 1; min-width: 0; }
+  .subject-card { display: flex; align-items: center; justify-content: space-between; padding: 14px 12px; background: var(--lesson-bg); border-radius: 12px; margin-bottom: 10px; gap: 8px; transition: background 0.3s; }
+  .subject-card .subj-name { font-weight: 600; font-size: 14px; color: var(--text-main); flex: 1; min-width: 0; }
   .grades-row { display: flex; gap: 5px; flex-shrink: 0; }
   .grade-pill { width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 8px; font-weight: 700; color: #fff; font-size: 13px; }
-  .grade-pill.empty { background: #e8eaed; color: #b0b3b8; }
+  .grade-pill.empty { background: var(--border); color: var(--text-muted); }
   .g5 { background: #27ae60; } .g4 { background: #3498db; } .g3 { background: #f39c12; } .g2 { background: #e74c3c; }
-  .avg-badge { margin-left: 6px; font-size: 12px; font-weight: 700; color: #667eea; background: #eef1ff; padding: 4px 8px; border-radius: 8px; }
+  .avg-badge { margin-left: 6px; font-size: 12px; font-weight: 700; color: #667eea; background: rgba(102, 126, 234, 0.15); padding: 4px 8px; border-radius: 8px; }
 
   /* РАСПИСАНИЕ */
   .day-block { margin-bottom: 16px; }
   .day-name { font-weight: 700; color: #667eea; margin-bottom: 8px; font-size: 14px; display: flex; justify-content: space-between; }
-  .lesson { display: flex; align-items: center; gap: 10px; padding: 12px; background: #f8f9fb; border-radius: 12px; margin-bottom: 7px; font-size: 13px; }
-  .lesson .num { width: 26px; height: 26px; line-height: 26px; text-align: center; background: #eef1ff; color: #667eea; border-radius: 8px; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .lesson { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--lesson-bg); border-radius: 12px; margin-bottom: 7px; font-size: 13px; transition: background 0.3s; }
+  .lesson .num { width: 26px; height: 26px; line-height: 26px; text-align: center; background: rgba(102, 126, 234, 0.15); color: #667eea; border-radius: 8px; font-weight: 700; font-size: 12px; flex-shrink: 0; }
   .lesson .info { flex: 1; }
-  .lesson .info .name { font-weight: 600; color: #333; }
-  .lesson .room { font-size: 11px; color: #667eea; background: #eef1ff; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+  .lesson .info .name { font-weight: 600; color: var(--text-main); }
+  .lesson .room { font-size: 11px; color: #667eea; background: rgba(102, 126, 234, 0.15); padding: 3px 8px; border-radius: 6px; font-weight: 600; }
 
   /* ФОРМЫ И КНОПКИ */
-  input, select { width: 100%; padding: 12px; border: 2px solid #eef0f3; border-radius: 10px; font-size: 14px; outline: none; background: #f8f9fb; margin-bottom: 8px; }
-  input:focus, select:focus { border-color: #667eea; background: #fff; }
+  input, select { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; background: var(--input-bg); margin-bottom: 8px; color: var(--text-main); transition: background 0.3s, border 0.3s; }
+  input:focus, select:focus { border-color: #667eea; }
   .btn { width: 100%; padding: 12px; background: #667eea; color: #fff; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
   .btn:active { background: #556cd6; }
-  .empty-state { text-align: center; padding: 20px; color: #b0b3b8; font-size: 14px; }
+  .empty-state { text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px; }
+  
+  .admin-box { margin-bottom:20px; background:var(--input-bg); padding:12px; border-radius:10px; transition: background 0.3s; }
+  .admin-box h3 { font-size:13px; color:#f39c12; margin-bottom:8px; }
 </style>
 </head>
 <body>
@@ -91,7 +126,8 @@
     <div class="user">
       <span class="uname" id="userName"></span>
       <div class="avatar" id="avatar"></div>
-      <button onclick="logout()" style="background:none; border:none; font-size:20px; cursor:pointer;">🚪</button>
+      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+      <button class="icon-btn" onclick="logout()">🚪</button>
     </div>
   </header>
 
@@ -110,7 +146,7 @@
         <h2>🗓️ Расписание</h2>
         <div id="scheduleList"></div>
         
-        <div id="scheduleEditor" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+        <div id="scheduleEditor" style="display:none; margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">
           <h3 style="font-size:14px; margin-bottom:10px; color:#667eea;">Добавить урок</h3>
           <select id="editDay">
             <option value="0">Понедельник</option>
@@ -132,40 +168,26 @@
         <h2>⚙️ Учительская</h2>
         
         <!-- Выбор класса -->
-        <div style="margin-bottom:20px; background:#f8f9fb; padding:12px; border-radius:10px;">
-          <h3 style="font-size:13px; color:#92400e; margin-bottom:8px;">Мой класс</h3>
+        <div class="admin-box">
+          <h3>Мой класс</h3>
           <select id="myClassSelect" onchange="changeMyClass(this.value)">
-            <!-- Начальные классы -->
-            <option value="1А">1А</option>
-            <option value="1Б">1Б</option>
-            <option value="2А">2А</option>
-            <option value="2Б">2Б</option>
-            <option value="3А">3А</option>
-            <option value="3Б">3Б</option>
-            <option value="4А">4А</option>
-            <option value="4Б">4Б</option>
-            <!-- Средние классы -->
-            <option value="5А">5А</option>
-            <option value="5Б">5Б</option>
-            <option value="6А">6А</option>
-            <option value="6Б">6Б</option>
-            <option value="7А">7А</option>
-            <option value="7Б">7Б</option>
-            <option value="8А">8А</option>
-            <option value="8Б">8Б</option>
-            <option value="9А">9А</option>
-            <option value="9Б">9Б</option>
-            <!-- Старшие классы -->
-            <option value="10А">10А</option>
-            <option value="10Б">10Б</option>
-            <option value="11А">11А</option>
-            <option value="11Б">11Б</option>
+            <option value="1А">1А</option><option value="1Б">1Б</option>
+            <option value="2А">2А</option><option value="2Б">2Б</option>
+            <option value="3А">3А</option><option value="3Б">3Б</option>
+            <option value="4А">4А</option><option value="4Б">4Б</option>
+            <option value="5А">5А</option><option value="5Б">5Б</option>
+            <option value="6А">6А</option><option value="6Б">6Б</option>
+            <option value="7А">7А</option><option value="7Б">7Б</option>
+            <option value="8А">8А</option><option value="8Б">8Б</option>
+            <option value="9А">9А</option><option value="9Б">9Б</option>
+            <option value="10А">10А</option><option value="10Б">10Б</option>
+            <option value="11А">11А</option><option value="11Б">11Б</option>
           </select>
         </div>
 
         <!-- Выдача оценок -->
         <div style="border-left: 4px solid #f39c12; padding-left: 12px; margin-bottom: 18px;">
-          <h3 style="font-size:13px; color:#92400e; margin-bottom:10px;">Выдать оценку</h3>
+          <h3 style="font-size:13px; color:#f39c12; margin-bottom:10px;">Выдать оценку</h3>
           <select id="adminStudent">
             <option value="admin">Хозяин</option>
             <option value="friend">Друг</option>
@@ -173,16 +195,12 @@
           <select id="adminSubject"></select>
           <div style="display:flex; gap:8px;">
             <select id="adminGrade">
-              <option value="5">5</option>
-              <option value="4">4</option>
-              <option value="3">3</option>
-              <option value="2">2</option>
+              <option value="5">5</option><option value="4">4</option>
+              <option value="3">3</option><option value="2">2</option>
             </select>
             <select id="adminDay">
-              <option value="0">Пн</option>
-              <option value="1">Вт</option>
-              <option value="2">Ср</option>
-              <option value="3">Чт</option>
+              <option value="0">Пн</option><option value="1">Вт</option>
+              <option value="2">Ср</option><option value="3">Чт</option>
               <option value="4">Пт</option>
             </select>
           </div>
@@ -200,12 +218,41 @@
 </div>
 
 <script>
+// ===== ЛОГИКА ТЕМЫ =====
+function initTheme() {
+  const savedTheme = localStorage.getItem('diary_theme');
+  const themeBtn = document.getElementById('themeBtn');
+  
+  if (savedTheme === 'dark') {
+    document.body.classList.add('dark');
+    themeBtn.textContent = '☀️';
+  } else if (savedTheme === 'light') {
+    document.body.classList.remove('dark');
+    themeBtn.textContent = '🌙';
+  } else {
+    // Автоопределение системы
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('dark');
+      themeBtn.textContent = '☀️';
+    } else {
+      themeBtn.textContent = '🌙';
+    }
+  }
+}
+
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark');
+  document.getElementById('themeBtn').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('diary_theme', isDark ? 'dark' : 'light');
+}
+
+// ===== ОСНОВНАЯ ЛОГИКА =====
 const USERS = {
   "admin":  { pass: "admin2024",  name: "Хозяин", role: "admin", class: "9А" },
   "friend": { pass: "friend2024", name: "Друг",   role: "admin", class: "9А" }
 };
 
-const STORAGE_PREFIX = "diary_v4_";
+const STORAGE_PREFIX = "diary_v5_"; // Обновил версию, чтобы данные не конфликтовали
 const BASE_SUBJECTS = ["Математика", "Русский язык", "Литература", "История", "Физика", "Химия", "Английский", "Информатика", "Биология", "Физкультура"];
 
 const DEFAULT_SCHEDULE = [
@@ -243,7 +290,7 @@ function login() {
   const p = document.getElementById('loginPass').value.trim();
   if (USERS[u] && USERS[u].pass === p) {
     currentUser = u;
-    sessionStorage.setItem('diary_user_v4', u);
+    sessionStorage.setItem('diary_user_v5', u);
     document.getElementById('errorMsg').textContent = '';
     startApp();
   } else {
@@ -252,7 +299,7 @@ function login() {
 }
 
 function logout() {
-  sessionStorage.removeItem('diary_user_v4');
+  sessionStorage.removeItem('diary_user_v5');
   location.reload();
 }
 
@@ -312,7 +359,7 @@ function renderSchedule() {
           <span class="room">${l.room}</span>
           <button onclick="deleteLesson(${i}, ${j})" style="background:none; border:none; color:#e74c3c; margin-left:8px;">✕</button>
         </div>
-      `).join('') : '<div style="font-size:12px;color:#999;padding:10px;">Нет уроков</div>'}
+      `).join('') : '<div style="font-size:12px;color:var(--text-muted);padding:10px;">Нет уроков</div>'}
     </div>
   `).join('');
 }
@@ -381,11 +428,11 @@ function teacherSetGrade() {
 }
 
 window.addEventListener('load', () => {
-  const saved = sessionStorage.getItem('diary_user_v4');
+  initTheme(); // Включаем тему
+  const saved = sessionStorage.getItem('diary_user_v5');
   if (saved && USERS[saved]) { currentUser = saved; startApp(); }
   document.getElementById('loginPass').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
 });
 </script>
 </body>
-               </html>
-               
+</html>
