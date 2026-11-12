@@ -112,6 +112,7 @@
   </header>
 
   <div class="container">
+    <!-- ОЦЕНКИ -->
     <div id="tab-grades" class="tab-content active">
       <div class="card">
         <h2>📊 Мои оценки <span id="studentClassBadge" class="avg-badge"></span></h2>
@@ -119,9 +120,10 @@
       </div>
     </div>
 
+    <!-- РАСПИСАНИЕ -->
     <div id="tab-schedule" class="tab-content">
       <div class="card">
-        <h2>🗓️ Расписание</h2>
+        <h2>🗓️ Расписание <span id="scheduleClassBadge" class="avg-badge"></span></h2>
         <div id="scheduleList"></div>
         
         <div id="scheduleEditor" style="display:none; margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">
@@ -137,6 +139,7 @@
       </div>
     </div>
 
+    <!-- ПАНЕЛЬ -->
     <div id="tab-admin" class="tab-content">
       <div class="card">
         <h2>⚙️ Учительская</h2>
@@ -204,7 +207,19 @@
 </div>
 
 <script>
-const BASE_SUBJECTS = ["Математика", "Русский язык", "Литература", "История", "Физика", "Химия", "Английский", "Информатика", "Биология", "Физкультура"];
+// УМНЫЕ ПРЕДМЕТЫ (зависят от класса)
+function getSubjectsForClass(cls) {
+  if (!cls) return ["Математика", "Русский язык", "Литература"];
+  const grade = parseInt(cls);
+  if (grade >= 1 && grade <= 4) {
+    return ["Математика", "Русский язык", "Литературное чтение", "Окружающий мир", "Технология", "ИЗО", "Музыка", "Физкультура"];
+  } else if (grade >= 5 && grade <= 9) {
+    return ["Математика", "Русский язык", "Литература", "История", "Обществознание", "Биология", "География", "Английский язык", "Информатика", "Физкультура", "Технология"];
+  } else {
+    return ["Алгебра", "Геометрия", "Русский язык", "Литература", "История", "Обществознание", "Физика", "Химия", "Биология", "Английский язык", "Информатика", "Астрономия", "Физкультура"];
+  }
+}
+
 const DEFAULT_SCHEDULE = [
   { day: "Понедельник", lessons: [] }, { day: "Вторник", lessons: [] },
   { day: "Среда", lessons: [] }, { day: "Четверг", lessons: [] }, { day: "Пятница", lessons: [] }
@@ -214,20 +229,15 @@ let USERS = {
   "admin":  { pass: "admin2024",  name: "Хозяин", role: "admin",   class: "9А" },
   "friend": { pass: "friend2024", name: "Друг",   role: "student", class: "9А" }
 };
-let GLOBAL_SCHEDULE = DEFAULT_SCHEDULE;
 let currentUser = null;
 let showPasswords = false;
 
-// ЗАГРУЗКА ИЗ ПАМЯТИ
+// ЗАГРУЗКА
 function loadLocalData() {
-  const savedUsers = localStorage.getItem('diary_local_users');
+  const savedUsers = localStorage.getItem('diary_v11_users');
   if (savedUsers) USERS = JSON.parse(savedUsers);
-
-  const savedSch = localStorage.getItem('diary_local_schedule');
-  if (savedSch) GLOBAL_SCHEDULE = JSON.parse(savedSch);
 }
-function saveLocalUsers() { localStorage.setItem('diary_local_users', JSON.stringify(USERS)); }
-function saveLocalSchedule() { localStorage.setItem('diary_local_schedule', JSON.stringify(GLOBAL_SCHEDULE)); }
+function saveLocalUsers() { localStorage.setItem('diary_v11_users', JSON.stringify(USERS)); }
 
 function initTheme() {
   const savedTheme = localStorage.getItem('diary_theme');
@@ -245,17 +255,16 @@ function toggleTheme() {
 function login() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
-
   if (USERS[u] && USERS[u].pass === p) {
     currentUser = u;
-    sessionStorage.setItem('diary_user_local', u);
+    sessionStorage.setItem('diary_v11_current', u);
     document.getElementById('errorMsg').textContent = '';
     startApp();
   } else {
     document.getElementById('errorMsg').textContent = 'Неверный логин или пароль';
   }
 }
-function logout() { sessionStorage.removeItem('diary_user_local'); location.reload(); }
+function logout() { sessionStorage.removeItem('diary_v11_current'); location.reload(); }
 
 function startApp() {
   document.getElementById('loginScreen').style.display = 'none';
@@ -287,14 +296,16 @@ function showTab(name, btn) {
 }
 function renderAll() { renderGrades(); renderSchedule(); renderAdmin(); }
 
-// ОЦЕНКИ
+// ОЦЕНКИ (только предметы своего класса)
 function renderGrades() {
   if (!USERS[currentUser]) return;
-  document.getElementById('studentClassBadge').textContent = USERS[currentUser].class || "—";
+  const cls = USERS[currentUser].class || "—";
+  document.getElementById('studentClassBadge').textContent = cls;
   
-  let grades = JSON.parse(localStorage.getItem('diary_grades_' + currentUser)) || {};
+  const subjects = getSubjectsForClass(cls);
+  let grades = JSON.parse(localStorage.getItem('diary_v11_grades_' + currentUser)) || {};
   
-  document.getElementById('gradesList').innerHTML = BASE_SUBJECTS.map(subj => {
+  document.getElementById('gradesList').innerHTML = subjects.map(subj => {
     const arr = grades[subj] || [null,null,null,null,null];
     const valid = arr.filter(x => x);
     const avg = valid.length ? (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1) : '—';
@@ -303,19 +314,25 @@ function renderGrades() {
   }).join('');
 }
 
-// РАСПИСАНИЕ
+// РАСПИСАНИЕ (у каждого класса своё)
+function getScheduleKey(cls) { return 'diary_v11_schedule_' + cls; }
+
 function renderSchedule() {
-  const isAdmin = USERS[currentUser] && USERS[currentUser].role === 'admin';
+  const cls = USERS[currentUser].class;
+  document.getElementById('scheduleClassBadge').textContent = cls;
   
-  document.getElementById('scheduleList').innerHTML = GLOBAL_SCHEDULE.map((d, i) => `
+  let sch = JSON.parse(localStorage.getItem(getScheduleKey(cls))) || DEFAULT_SCHEDULE;
+  const isAdmin = USERS[currentUser].role === 'admin';
+  
+  document.getElementById('scheduleList').innerHTML = sch.map((d, i) => `
     <div class="day-block">
-      <div class="day-name">📅 ${d.day} ${isAdmin ? `<button onclick="clearDay(${i})" style="border:none; background:none; color:#e74c3c; font-size:12px;">Очистить</button>` : ''}</div>
+      <div class="day-name">📅 ${d.day} ${isAdmin ? `<button onclick="clearDay(${i}, '${cls}')" style="border:none; background:none; color:#e74c3c; font-size:12px;">Очистить</button>` : ''}</div>
       ${d.lessons.length ? d.lessons.map((l, j) => `
         <div class="lesson">
           <span class="num">${l.num}</span>
           <div class="info"><div class="name">${l.name}</div></div>
           <span class="room">${l.room}</span>
-          ${isAdmin ? `<button onclick="deleteLesson(${i}, ${j})" style="background:none; border:none; color:#e74c3c; margin-left:8px;">✕</button>` : ''}
+          ${isAdmin ? `<button onclick="deleteLesson(${i}, ${j}, '${cls}')" style="background:none; border:none; color:#e74c3c; margin-left:8px;">✕</button>` : ''}
         </div>
       `).join('') : '<div style="font-size:12px;color:var(--text-muted);padding:10px;">Нет уроков</div>'}
     </div>
@@ -323,29 +340,33 @@ function renderSchedule() {
 }
 
 function saveLesson() {
+  const cls = USERS[currentUser].class;
   const dayIdx = parseInt(document.getElementById('editDay').value);
   const subj = document.getElementById('editSubject').value.trim();
   const room = document.getElementById('editRoom').value.trim();
   if (!subj) return alert('Введите название урока');
 
-  GLOBAL_SCHEDULE[dayIdx].lessons.push({ num: GLOBAL_SCHEDULE[dayIdx].lessons.length + 1, name: subj, room: room || "—" });
-  saveLocalSchedule();
+  let sch = JSON.parse(localStorage.getItem(getScheduleKey(cls))) || DEFAULT_SCHEDULE;
+  sch[dayIdx].lessons.push({ num: sch[dayIdx].lessons.length + 1, name: subj, room: room || "—" });
+  localStorage.setItem(getScheduleKey(cls), JSON.stringify(sch));
   
   document.getElementById('editSubject').value = ''; document.getElementById('editRoom').value = '';
   renderSchedule();
 }
 
-function deleteLesson(dayIdx, lessonIdx) {
-  GLOBAL_SCHEDULE[dayIdx].lessons.splice(lessonIdx, 1);
-  GLOBAL_SCHEDULE[dayIdx].lessons.forEach((l, i) => l.num = i + 1);
-  saveLocalSchedule();
+function deleteLesson(dayIdx, lessonIdx, cls) {
+  let sch = JSON.parse(localStorage.getItem(getScheduleKey(cls))) || DEFAULT_SCHEDULE;
+  sch[dayIdx].lessons.splice(lessonIdx, 1);
+  sch[dayIdx].lessons.forEach((l, i) => l.num = i + 1);
+  localStorage.setItem(getScheduleKey(cls), JSON.stringify(sch));
   renderSchedule();
 }
 
-function clearDay(dayIdx) {
+function clearDay(dayIdx, cls) {
   if (!confirm('Удалить все уроки в этот день?')) return;
-  GLOBAL_SCHEDULE[dayIdx].lessons = [];
-  saveLocalSchedule();
+  let sch = JSON.parse(localStorage.getItem(getScheduleKey(cls))) || DEFAULT_SCHEDULE;
+  sch[dayIdx].lessons = [];
+  localStorage.setItem(getScheduleKey(cls), JSON.stringify(sch));
   renderSchedule();
 }
 
@@ -357,10 +378,16 @@ function renderAdmin() {
   const stSelect = document.getElementById('adminStudent');
   stSelect.innerHTML = Object.keys(USERS).map(u => `<option value="${u}">${USERS[u].name} (@${u})</option>`).join('');
 
-  const subSelect = document.getElementById('adminSubject');
-  if (!subSelect.options.length) {
-    BASE_SUBJECTS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; subSelect.appendChild(o); });
-  }
+  // Список предметов зависит от класса выбранного ученика
+  const updateSubjectList = () => {
+    const studentCls = USERS[stSelect.value].class;
+    const subjects = getSubjectsForClass(studentCls);
+    const subSelect = document.getElementById('adminSubject');
+    subSelect.innerHTML = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+  };
+  
+  stSelect.onchange = updateSubjectList;
+  updateSubjectList();
 
   if (USERS[currentUser].role === 'admin') {
     const listEl = document.getElementById('studentsList');
@@ -398,6 +425,8 @@ function changeMyClass(newClass) {
   USERS[currentUser].class = newClass;
   saveLocalUsers();
   renderGrades();
+  renderSchedule(); // Сразу меняем расписание под новый класс
+  renderAdmin();
 }
 
 function teacherSetGrade() {
@@ -406,10 +435,10 @@ function teacherSetGrade() {
   const grade = parseInt(document.getElementById('adminGrade').value);
   const dayIdx = parseInt(document.getElementById('adminDay').value);
 
-  let grades = JSON.parse(localStorage.getItem('diary_grades_' + student)) || {};
+  let grades = JSON.parse(localStorage.getItem('diary_v11_grades_' + student)) || {};
   if (!grades[subj]) grades[subj] = [null,null,null,null,null];
   grades[subj][dayIdx] = grade;
-  localStorage.setItem('diary_grades_' + student, JSON.stringify(grades));
+  localStorage.setItem('diary_v11_grades_' + student, JSON.stringify(grades));
 
   alert(`Оценка ${grade} выставлена: ${USERS[student].name}`);
   if (student === currentUser) renderGrades();
@@ -426,9 +455,6 @@ function addNewStudent() {
 
   USERS[login] = { pass: pass, name: name, role: "student", class: cls };
   saveLocalUsers();
-  
-  const g = {}; BASE_SUBJECTS.forEach(s => g[s] = [null,null,null,null,null]);
-  localStorage.setItem('diary_grades_' + login, JSON.stringify(g));
 
   document.getElementById('newStLogin').value = '';
   document.getElementById('newStName').value = '';
@@ -442,7 +468,6 @@ function deleteStudent(login) {
   if (!confirm('Удалить пользователя ' + USERS[login].name + '?')) return;
   delete USERS[login];
   saveLocalUsers();
-  localStorage.removeItem('diary_grades_' + login);
   renderAdmin();
 }
 
@@ -455,7 +480,7 @@ function toggleAdmin(login) {
 window.addEventListener('load', () => {
   loadLocalData();
   initTheme();
-  const saved = sessionStorage.getItem('diary_user_local');
+  const saved = sessionStorage.getItem('diary_v11_current');
   if (saved && USERS[saved]) { 
     currentUser = saved; 
     startApp(); 
